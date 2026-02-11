@@ -10,7 +10,6 @@ export const translations = {
         proPlan: "Pro Plan",
         proDesc: "Unlock unlimited bulk processing & OCR power.",
         upgrade: "Upgrade Now",
-        whatToDo: "What would you like to do today?",
         tools: {
             compress: {
                 name: "Compress PDF",
@@ -49,7 +48,6 @@ export const translations = {
         proPlan: "Pro Plan",
         proDesc: "Sınırsız toplu işlem ve OCR gücünün kilidini açın.",
         upgrade: "Şimdi Yükselt",
-        whatToDo: "Bugün ne yapmak istersiniz?",
         tools: {
             compress: {
                 name: "PDF Sıkıştır",
@@ -80,4 +78,3 @@ export const translations = {
 };
 
 export type Language = "en" | "tr";
-export type TranslationKey = keyof typeof translations.en;

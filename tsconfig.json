@@ -16,6 +16,17 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "paths": {
+      "@tauri-apps/plugin-dialog": [
+        "./node_modules/@tauri-apps/plugin-dialog/dist-js/index.d.ts"
+      ],
+      "@tauri-apps/plugin-opener": [
+        "./node_modules/@tauri-apps/plugin-opener/dist-js/index.d.ts"
+      ],
+      "@tauri-apps/plugin-shell": [
+        "./node_modules/@tauri-apps/plugin-shell/dist-js/index.d.ts"
+      ]
+    },
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

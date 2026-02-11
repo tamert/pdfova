@@ -1,10 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   :root {
-    --background: 224 71% 4%;
+    --background: 224 71% 2%;
     --foreground: 213 31% 91%;
     --card: 224 71% 4%;
     --card-foreground: 213 31% 91%;
@@ -17,33 +15,40 @@
 body {
   background-color: hsl(var(--background));
   background-image:
-    radial-gradient(at 0% 0%, hsla(191, 91%, 48%, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, hsla(263, 70%, 50%, 0.15) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, hsla(191, 91%, 48%, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(263, 70% 50%, 0.12) 0px, transparent 50%);
   color: hsl(var(--foreground));
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow: hidden;
   user-select: none;
   min-height: 100vh;
+  letter-spacing: -0.015em;
 }
 
 .glass {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-glass {
+  background: rgba(8, 12, 24, 0.6);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .card-glow {
   position: relative;
   overflow: hidden;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.3s ease;
 }
 
 .card-glow::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(255, 255, 255, 0.06), transparent 40%);
+  background: radial-gradient(400px circle at var(--mouse-x) var(--mouse-y), rgba(255, 255, 255, 0.06), transparent 40%);
   opacity: 0;
   transition: opacity 0.5s;
 }
@@ -55,6 +60,7 @@ body {
 .text-gradient {
   background: linear-gradient(to right, #fff, #94a3b8);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -74,4 +80,21 @@ body {
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
