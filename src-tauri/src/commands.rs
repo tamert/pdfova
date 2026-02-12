@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 use std::path::Path;
-use lopdf::{Document, Object, Dictionary};
+use lopdf::{Document, Object, Dictionary, Stream};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -635,7 +635,7 @@ pub async fn images_to_pdf(files: Vec<String>, output_dir: String) -> Result<Pro
             ("ColorSpace", Object::Name("DeviceRGB".into())),
             ("BitsPerComponent", Object::Integer(8)),
             ("Filter", Object::Name("DCTDecode".into())),
-        ]);
+        ].into_iter());
         
         let image_id = doc.add_object(Stream::new(dict, img_bytes));
 
@@ -644,7 +644,7 @@ pub async fn images_to_pdf(files: Vec<String>, output_dir: String) -> Result<Pro
             "q\n{} 0 0 {} 0 0 cm\n/Im0 Do\nQ",
             width, height
         );
-        let content_id = doc.add_object(Stream::new(Dictionary::from_iter(vec![]), content.into_bytes()));
+        let content_id = doc.add_object(Stream::new(Dictionary::new(), content.into_bytes()));
 
         // Create Page
         let page_id = doc.add_object(Dictionary::from_iter(vec![
@@ -659,10 +659,10 @@ pub async fn images_to_pdf(files: Vec<String>, output_dir: String) -> Result<Pro
             ("Resources", Object::Dictionary(Dictionary::from_iter(vec![
                 ("XObject", Object::Dictionary(Dictionary::from_iter(vec![
                     ("Im0", Object::Reference(image_id)),
-                ]))),
-            ]))),
+                ].into_iter()))),
+            ].into_iter()))),
             ("Contents", Object::Reference(content_id)),
-        ]));
+        ].into_iter()));
         page_ids.push(Object::Reference(page_id));
     }
 
@@ -671,22 +671,13 @@ pub async fn images_to_pdf(files: Vec<String>, output_dir: String) -> Result<Pro
         ("Type", Object::Name("Pages".into())),
         ("Count", Object::Integer(page_ids.len() as i64)),
         ("Kids", Object::Array(page_ids)),
-    ])));
+    ].into_iter())));
     
-    // Fix: count is .len(), and Rust doesn't have .length()
-    if let Some(obj) = doc.objects.get_mut(&pages_id) {
-        if let Some(dict) = obj.as_dict_mut() {
-            if let Some(kids) = dict.get(b"Kids").ok().and_then(|o| o.as_array().ok()) {
-                dict.set("Count", Object::Integer(kids.len() as i64));
-            }
-        }
-    }
-
     // Create Catalog
     let catalog_id = doc.add_object(Dictionary::from_iter(vec![
         ("Type", Object::Name("Catalog".into())),
         ("Pages", Object::Reference(pages_id)),
-    ]));
+    ].into_iter()));
 
     doc.trailer.set("Root", Object::Reference(catalog_id));
 

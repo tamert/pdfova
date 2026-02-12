@@ -38,7 +38,7 @@ Download the `.msi` or `.exe` from the [Releases](https://github.com/tamert/pdfo
 ### 🐧 Linux (Pardus, Ubuntu, Debian)
 - **Debian/Pardus (.deb):** 
   ```bash
-  sudo apt install ./pdfova_0.2.3_amd64.deb
+  sudo apt install ./pdfova_0.3.0_amd64.deb
   ```
 - **Portable (.AppImage):** Download the `.AppImage` from Releases, make it executable, and run.
 - **Flatpak:** Manifesto and build guide available in `dist-scripts/flatpak/`.

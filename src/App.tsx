@@ -489,7 +489,7 @@ export default function App() {
           </div>
         </div>
 
-        {activeTab === 'home' && !showMergeUI && !showResizeUI && !showSplitUI && (
+        {activeTab === 'home' && !showMergeUI && !showResizeUI && !showSplitUI && !showImageToPdfUI && (
           <nav className="flex space-x-6 overflow-x-auto no-scrollbar border-b border-white/5">
             {['all', 'pdf', 'word', 'image', 'ocr'].map((cat) => (
               <button
@@ -518,7 +518,7 @@ export default function App() {
             transition={{ duration: 0.15 }}
             className="h-full"
           >
-            {activeTab === 'home' && !showMergeUI && !showResizeUI && !showSplitUI ? (
+            {activeTab === 'home' && !showMergeUI && !showResizeUI && !showSplitUI && !showImageToPdfUI ? (
               <div className="flux-grid">
                 {filteredTools.map((tool) => (
                   <div
