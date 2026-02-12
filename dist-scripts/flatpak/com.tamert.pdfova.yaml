@@ -1,0 +1,21 @@
+app-id: com.tamert.pdfova
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: pdfova
+separate-locales: false
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --share=network
+  - --filesystem=home # Dosya işlemleri için gerekli
+modules:
+  - name: pdfova
+    buildsystem: simple
+    build-commands:
+      - install -D pdfova /app/bin/pdfova
+    sources:
+      - type: file
+        path: ../src-tauri/target/release/tauri-app # Build sonrası oluşan binary

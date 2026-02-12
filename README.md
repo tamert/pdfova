@@ -8,68 +8,65 @@
 ## ✨ Features
 
 - 📉 **PDF Compression:** Reduce file size without compromising quality.
-- 📝 **PDF to Word:** Convert PDF documents to editable Word (.docx) files.
-- 🖋️ **Signature Extraction:** Detect and extract signature candidates from PDFs. *(Basic — image-level detection)*
-- 🖼️ **Image Resizing:** High-quality image resizing with Lanczos3 filter.
-- 🔍 **Text Extraction (OCR):** Extract embedded text from PDF documents. *(Embedded text only — Tesseract OCR planned)*
-- 🔗 **PDF Merger:** Quick and easy combining of multiple PDF files.
+- 🔗 **PDF Merger:** Professional-grade merging with proper object handling (fully compatible with Apple Preview).
+- 🖼️ **Batch Image Resize:** Process 100s of images at once with 4 scaling modes (Exact, Percent, Width-only, Height-only).
+- 📝 **PDF to Word / Text:** Convert PDF documents to editable content.
+- 🖋️ **Signature Extraction:** Detect and isolate signature images from PDFs.
+- 🔍 **Text Extraction (OCR):** Extract text content from scanned documents.
 
 ## 🚀 Key Advantages
 
-- **Cross-Platform:** Runs on macOS, Linux, and Windows.
-- **Offline Working:** Your documents stay private; no cloud uploads required.
-- **Modern Dark UI:** Sleek, minimal interface with smooth animations.
-- **History Tracking:** Built-in activity log for all processed files.
-
-## 🛠️ Tech Stack
-
-- **Backend:** [Rust](https://www.rust-lang.org/) for safety and performance.
-- **Frontend:** [React](https://reactjs.org/) + [Vite](https://vitejs.dev/) + [Tailwind CSS](https://tailwindcss.com/).
-- **Bridge:** [Tauri v2](https://tauri.app/) for small binaries and native OS integration.
+- **Cross-Platform:** Native builds for macOS, Windows, and Linux.
+- **Privacy First:** All processing happens locally on your machine. No cloud, no uploads.
+- **Fast:** Powered by Rust for lightning-fast processing.
+- **Modern UI:** Minimalist dark mode with smooth React-powered animations.
 
 ## 📦 Installation
 
-### macOS
-Download the latest `.dmg` from the [Releases](https://github.com/tamert/pdfova/releases) page.
+### macOS (Intel & Apple Silicon)
+1. Download the `.dmg` from [Releases](https://github.com/tamert/pdfova/releases).
+2. **Homebrew (Draft):** You can use the local cast file in `dist-scripts/homebrew/`.
 
-### Linux (Debian / Ubuntu / Pardus)
-Download the latest `.deb` package from the [Releases](https://github.com/tamert/pdfova/releases) page:
-```bash
-sudo apt install ./pdfova_0.1.1_amd64.deb
-```
+### Windows 
+Download the `.msi` or `.exe` from the [Releases](https://github.com/tamert/pdfova/releases).
 
-### Windows
-Download the latest `.msi` installer from the [Releases](https://github.com/tamert/pdfova/releases) page.
+### Linux (Flatpak / Deb)
+- **Debian/Pardus:** `sudo apt install ./pdfova_0.2.1_amd64.deb`
+- **Flatpak:** Manifesto template available in `dist-scripts/flatpak/`.
+
+## 🛠️ Tech Stack
+
+- **Backend:** [Rust](https://www.rust-lang.org/) (lopdf, image-rs).
+- **Frontend:** [React](https://reactjs.org/) + [Vite](https://vitejs.dev/) + [Tailwind CSS](https://tailwindcss.com/).
+- **Bridge:** [Tauri v2](https://tauri.app/).
 
 ## 🛠️ Development
 
-To build Pdfova from source, you'll need Rust and Node.js installed.
+To build Pdfova from source:
 
-1. **Clone the repo:**
+1. **Clone & Install:**
    ```bash
    git clone https://github.com/tamert/pdfova.git
-   cd pdfova
-   ```
-2. **Install dependencies:**
-   ```bash
    npm install
    ```
-3. **Run in development mode:**
+2. **Run Dev:**
    ```bash
    npm run tauri dev
    ```
-4. **Build for production:**
+3. **Build:**
    ```bash
    npm run tauri build
    ```
 
 ## 🗺️ Roadmap
 
+- [x] Full Turkish character support
+- [x] Robust PDF Merger (Preview compatibility)
+- [x] Batch Image Resizing UI
+- [x] GitHub Actions automated releases
+- [x] Homebrew / Flatpak distribution scripts
 - [ ] Real OCR via Tesseract integration
-- [ ] Full signature image extraction
-- [ ] Bulk (multi-file) image resizing
-- [ ] Drag & drop file support
-- [ ] Flatpak / Homebrew distribution
+- [ ] Drag & drop file support on main tool cards
 
 ## 📄 License
 

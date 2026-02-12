@@ -1,21 +1,21 @@
 export const versionInfo = {
     current: "v0.2.1",
-    releaseName: "Engine Upgrade & Turkish Support",
+    releaseName: "Production Ready PDF & Image Engine",
     date: "2026-02-12",
     notes: {
         en: [
-            "Upgraded text engine with full Turkish character support",
-            "Full signature image extraction (decoding & exporting)",
-            "Robust PDF to Word conversion with XML sanitization",
-            "Improved responsive UI grid layout",
-            "Stability and performance improvements"
+            "Fixed PDF Merge: Fully compatible with Apple Preview & strict readers",
+            "Batch Image Resize: Added 100+ image processing with 4 scaling modes",
+            "Automated Releases: Now providing official Windows and macOS builds",
+            "Added Homebrew & Flatpak distribution templates",
+            "Full Turkish character support across all tools"
         ],
         tr: [
-            "Tam Türkçe karakter destekli gelişmiş metin motoru",
-            "PDF belgelerinden tam imza ve görsel ayıklama",
-            "XML temizleme ile daha stabil PDF'den Word'e dönüştürme",
-            "Geliştirilmiş duyarlı (responsive) UI düzeni",
-            "Stabilite ve performans iyileştirmeleri"
+            "PDF Birleştirme Fix: Apple Önizleme ve katı okuyucularla tam uyum",
+            "Toplu Görsel Boyutlandırma: 4 farklı mod ile 100+ görsel işleme",
+            "Otomatik Sürümler: Resmi Windows ve macOS buildleri eklendi",
+            "Homebrew ve Flatpak dağıtım şablonları eklendi",
+            "Tüm araçlarda tam Türkçe karakter desteği"
         ]
     }
 };
