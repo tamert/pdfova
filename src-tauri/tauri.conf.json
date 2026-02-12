@@ -34,13 +34,14 @@
     "linux": {
       "deb": {
         "depends": [
-          "webkit2gtk-4.0",
+          "webkit2gtk-4.1",
+          "libjavascriptcoregtk-4.1-0",
           "gtk3",
           "libappindicator3-1"
         ]
       }
     },
-    "category": "Office",
+    "category": "Productivity",
     "shortDescription": "Simple and powerful PDF & Image tools",
     "longDescription": "A modern desktop application for PDF merging, splitting, compression, and image batch processing. Built for speed and privacy."
   }
