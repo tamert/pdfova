@@ -25,7 +25,11 @@
 
 ### macOS (Intel & Apple Silicon)
 1. Download the `.dmg` from [Releases](https://github.com/tamert/pdfova/releases).
-2. **Homebrew (Draft):** You can use the local cast file in `dist-scripts/homebrew/`.
+2. **Note:** Since the app is not signed with an Apple Developer certificate, macOS might show a "Damaged" error. To fix this, run the following command in Terminal:
+   ```bash
+   sudo xattr -cr /Applications/Pdfova.app
+   ```
+3. **Homebrew (Draft):** You can use the local cask file in `dist-scripts/homebrew/`.
 
 ### Windows 
 Download the `.msi` or `.exe` from the [Releases](https://github.com/tamert/pdfova/releases).
