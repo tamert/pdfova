@@ -1,21 +1,37 @@
 app-id: com.tamert.pdfova
 runtime: org.freedesktop.Platform
-runtime-version: '23.08'
+runtime-version: '24.08' # Güncel ve kararlı sürüm
 sdk: org.freedesktop.Sdk
 command: pdfova
-separate-locales: false
+
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.node20
+  - org.freedesktop.Sdk.Extension.rust-stable # Rust derlemesi için gerekli
+
+build-options:
+  append-path: /usr/lib/sdk/node20/bin:/usr/lib/sdk/rust-stable/bin
+  env:
+    - NPM_CONFIG_OFFLINE=false # Yerel build'de internete izin vermek için
+
 finish-args:
-  - --share=ipc
-  - --socket=fallback-x11
-  - --socket=wayland
-  - --device=dri
   - --share=network
-  - --filesystem=home # Dosya işlemleri için gerekli
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --filesystem=home
+
 modules:
   - name: pdfova
     buildsystem: simple
     build-commands:
-      - install -D pdfova /app/bin/pdfova
+      # Flatpak sandbox içinde build yaparken npm'in internete çıkabilmesi için 
+      # build komutunu çalıştırırken --share=network parametresi eklenmelidir.
+      - npm install
+      - npm run build
+      - cd src-tauri && cargo build --release
+      # Tauri genelde src-tauri içinde build yapar, binary oradadır
+      - install -Dm755 src-tauri/target/release/pdfova /app/bin/pdfova
     sources:
-      - type: file
-        path: ../src-tauri/target/release/tauri-app # Build sonrası oluşan binary
+      - type: git
+        url: https://github.com/tamert/pdfova.git
+        branch: main
