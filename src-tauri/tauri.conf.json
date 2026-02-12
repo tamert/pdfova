@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Pdfova",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "identifier": "com.tamert.pdfova",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -30,6 +30,18 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "linux": {
+      "deb": {
+        "depends": [
+          "webkit2gtk-4.0",
+          "gtk3",
+          "libappindicator3-1"
+        ]
+      }
+    },
+    "category": "Office",
+    "shortDescription": "Simple and powerful PDF & Image tools",
+    "longDescription": "A modern desktop application for PDF merging, splitting, compression, and image batch processing. Built for speed and privacy."
   }
 }

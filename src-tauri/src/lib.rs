@@ -13,7 +13,8 @@ pub fn run() {
             commands::extract_signature,
             commands::run_ocr,
             commands::convert_to_word,
-            commands::split_pdf
+            commands::split_pdf,
+            commands::read_file_binary
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

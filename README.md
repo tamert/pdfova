@@ -35,9 +35,13 @@
 ### Windows 
 Download the `.msi` or `.exe` from the [Releases](https://github.com/tamert/pdfova/releases).
 
-### Linux (Flatpak / Deb)
-- **Debian/Pardus:** `sudo apt install ./pdfova_0.2.1_amd64.deb`
-- **Flatpak:** Manifesto template available in `dist-scripts/flatpak/`.
+### 🐧 Linux (Pardus, Ubuntu, Debian)
+- **Debian/Pardus (.deb):** 
+  ```bash
+  sudo apt install ./pdfova_0.2.3_amd64.deb
+  ```
+- **Portable (.AppImage):** Download the `.AppImage` from Releases, make it executable, and run.
+- **Flatpak:** Manifesto and build guide available in `dist-scripts/flatpak/`.
 
 ## 🛠️ Tech Stack
 

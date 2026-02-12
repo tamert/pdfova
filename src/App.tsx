@@ -22,15 +22,15 @@ import {
   X,
   Scissors
 } from "lucide-react";
-import * as pdfjs from "pdfjs-dist";
-
-// Set PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import * as pdfjs from "pdfjs-dist";
 import { translations, versionInfo, Language } from "./translations";
 import "./styles.css";
+
+// Import worker via Vite URL
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 interface ProcessResult {
   success: boolean;
@@ -139,11 +139,10 @@ export default function App() {
       let result: ProcessResult;
       if (toolId === 'merge') {
         setShowMergeUI(true);
-        // Automatically open file dialog if list is empty
         if (mergeFiles.length === 0) {
           handleAddToMergeList();
         }
-        setProcessingId(null); // Stop spinner immediately as we are just showing UI
+        setProcessingId(null);
         return;
       } else if (toolId === 'resize') {
         setShowResizeUI(true);
@@ -338,16 +337,11 @@ export default function App() {
       setIsRenderingThumbnails(true);
       setSplitThumbnails([]);
 
-      // We need to read the file as bytes to pass to PDF.js
-      // Note: In Tauri v2, we use invoke('tauri', 'read_file') or plugins
-      // For now, let's assume raw fetch to the local file asset path works or use tauri-plugin-fs
-      // Since I don't have tauri-plugin-fs easily configured, I'll use a placeholder or specific method
-      // Actually, I can use invoke('read_file_binary', { path: filePath }) if I had it.
-      // Let's use a workaround: PDF.js can load from URL. We can use convertFileSrc
-      const { convertFileSrc } = await import("@tauri-apps/api/core");
-      const assetUrl = convertFileSrc(filePath);
+      // Use backend command to read file as bytes (bypasses asset protocol issues)
+      const bytes: number[] = await invoke('read_file_binary', { path: filePath });
+      const data = new Uint8Array(bytes);
 
-      const loadingTask = pdfjs.getDocument(assetUrl);
+      const loadingTask = pdfjs.getDocument({ data });
       const pdf = await loadingTask.promise;
       const thumbs: string[] = [];
 
@@ -356,16 +350,16 @@ export default function App() {
         const viewport = page.getViewport({ scale: 0.3 });
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
         if (context) {
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
           await (page as any).render({ canvasContext: context, viewport }).promise;
           thumbs.push(canvas.toDataURL());
         }
       }
       setSplitThumbnails(thumbs);
     } catch (e) {
+      console.error("PDF Preview Error:", e);
       setStatus({ msg: "Error loading PDF: " + String(e), type: "error" });
     } finally {
       setIsRenderingThumbnails(false);

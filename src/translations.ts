@@ -1,7 +1,7 @@
 export const versionInfo = {
-    current: "v0.2.2",
+    current: "v0.2.3",
     releaseName: "Production Ready PDF & Image Engine",
-    date: "2026-02-12",
+    date: "2026-02-13",
     notes: {
         en: [
             "Visual PDF Split: See and select specific pages to extract or split-all",
