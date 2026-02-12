@@ -1,5 +1,5 @@
 export const versionInfo = {
-    current: "v0.2.1",
+    current: "v0.2.2",
     releaseName: "Production Ready PDF & Image Engine",
     date: "2026-02-12",
     notes: {
