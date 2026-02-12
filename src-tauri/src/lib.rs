@@ -14,7 +14,8 @@ pub fn run() {
             commands::run_ocr,
             commands::convert_to_word,
             commands::split_pdf,
-            commands::read_file_binary
+            commands::read_file_binary,
+            commands::images_to_pdf
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

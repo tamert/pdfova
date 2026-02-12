@@ -605,3 +605,98 @@ pub async fn read_file_binary(path: String) -> Result<Vec<u8>, String> {
     std::fs::read(&path).map_err(|e| format!("Failed to read file: {}", e))
 }
 
+#[tauri::command]
+pub async fn images_to_pdf(files: Vec<String>, output_dir: String) -> Result<ProcessResult, String> {
+    if files.is_empty() {
+        return Err("No files selected".to_string());
+    }
+
+    let mut doc = Document::with_version("1.7");
+    let mut page_ids = Vec::new();
+
+    // Pages node (container for all pages)
+    let pages_id = doc.new_object_id();
+
+    for file_path in &files {
+        let img = image::open(file_path).map_err(|e| format!("Image open error: {}", e))?;
+        let (width, height) = (img.width(), img.height());
+
+        // Convert image to bytes (ensure it's RGB)
+        let mut img_bytes = Vec::new();
+        img.to_rgb8().write_to(&mut std::io::Cursor::new(&mut img_bytes), image::ImageFormat::Jpeg)
+            .map_err(|e| format!("Image compression error: {}", e))?;
+
+        // Create Image XObject
+        let dict = Dictionary::from_iter(vec![
+            ("Type", Object::Name("XObject".into())),
+            ("Subtype", Object::Name("Image".into())),
+            ("Width", Object::Integer(width as i64)),
+            ("Height", Object::Integer(height as i64)),
+            ("ColorSpace", Object::Name("DeviceRGB".into())),
+            ("BitsPerComponent", Object::Integer(8)),
+            ("Filter", Object::Name("DCTDecode".into())),
+        ]);
+        
+        let image_id = doc.add_object(Stream::new(dict, img_bytes));
+
+        // Create Content Stream (draw the image filling the page)
+        let content = format!(
+            "q\n{} 0 0 {} 0 0 cm\n/Im0 Do\nQ",
+            width, height
+        );
+        let content_id = doc.add_object(Stream::new(Dictionary::from_iter(vec![]), content.into_bytes()));
+
+        // Create Page
+        let page_id = doc.add_object(Dictionary::from_iter(vec![
+            ("Type", Object::Name("Page".into())),
+            ("Parent", Object::Reference(pages_id)),
+            ("MediaBox", Object::Array(vec![
+                Object::Integer(0),
+                Object::Integer(0),
+                Object::Integer(width as i64),
+                Object::Integer(height as i64),
+            ])),
+            ("Resources", Object::Dictionary(Dictionary::from_iter(vec![
+                ("XObject", Object::Dictionary(Dictionary::from_iter(vec![
+                    ("Im0", Object::Reference(image_id)),
+                ]))),
+            ]))),
+            ("Contents", Object::Reference(content_id)),
+        ]));
+        page_ids.push(Object::Reference(page_id));
+    }
+
+    // Set up Pages node
+    doc.objects.insert(pages_id, Object::Dictionary(Dictionary::from_iter(vec![
+        ("Type", Object::Name("Pages".into())),
+        ("Count", Object::Integer(page_ids.len() as i64)),
+        ("Kids", Object::Array(page_ids)),
+    ])));
+    
+    // Fix: count is .len(), and Rust doesn't have .length()
+    if let Some(obj) = doc.objects.get_mut(&pages_id) {
+        if let Some(dict) = obj.as_dict_mut() {
+            if let Some(kids) = dict.get(b"Kids").ok().and_then(|o| o.as_array().ok()) {
+                dict.set("Count", Object::Integer(kids.len() as i64));
+            }
+        }
+    }
+
+    // Create Catalog
+    let catalog_id = doc.add_object(Dictionary::from_iter(vec![
+        ("Type", Object::Name("Catalog".into())),
+        ("Pages", Object::Reference(pages_id)),
+    ]));
+
+    doc.trailer.set("Root", Object::Reference(catalog_id));
+
+    let out_path = Path::new(&output_dir).join("images_combined.pdf");
+    doc.save(&out_path).map_err(|e| format!("Save error: {}", e))?;
+
+    Ok(ProcessResult {
+        success: true,
+        message: format!("Successfully created PDF from images"),
+        output_path: Some(out_path.to_string_lossy().to_string()),
+    })
+}
+

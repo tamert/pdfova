@@ -4,18 +4,18 @@ export const versionInfo = {
     date: "2026-02-13",
     notes: {
         en: [
+            "Images to PDF: Convert and combine multiple images into a professional PDF",
             "Visual PDF Split: See and select specific pages to extract or split-all",
             "Fixed PDF Merge: Fully compatible with Apple Preview & strict readers",
-            "Batch Image Resize: Added 100+ image processing with 4 scaling modes",
-            "Automated Releases: Now providing official Windows and macOS builds",
-            "Full Turkish character support across all tools"
+            "Pardus & Linux Support: Optimized installers for Debian-based systems",
+            "Batch Image Resize: Added 100+ image processing with 4 scaling modes"
         ],
         tr: [
+            "Görselden PDF'e: Birden fazla görseli tek bir PDF belgesine dönüştürün",
             "Görsel PDF Ayırma: Sayfaları görerek seçin, ayıklayın veya tümünü bölün",
             "PDF Birleştirme Fix: Apple Önizleme ve katı okuyucularla tam uyum",
-            "Toplu Görsel Boyutlandırma: 4 farklı mod ile 100+ görsel işleme",
-            "Otomatik Sürümler: Resmi Windows ve macOS buildleri eklendi",
-            "Tüm araçlarda tam Türkçe karakter desteği"
+            "Pardus ve Linux Desteği: Debian tabanlı sistemler için optimize edilmiş paketler",
+            "Toplu Görsel Boyutlandırma: 4 farklı mod ile 100+ görsel işleme"
         ]
     }
 };
@@ -74,6 +74,10 @@ export const translations = {
             split: {
                 name: "Split PDF",
                 desc: "Separate pages or extract specific parts"
+            },
+            imageToPdf: {
+                name: "Images to PDF",
+                desc: "Convert and combine images into a document"
             }
         },
         mergeUI: {
@@ -109,6 +113,13 @@ export const translations = {
             pagesFound: "Pages found",
             noFile: "No file selected",
             hint: "Click pages to select/deselect"
+        },
+        imageToPdfUI: {
+            title: "Images to PDF",
+            addImages: "Add Images",
+            createPdf: "Create PDF",
+            clear: "Clear All",
+            placeholder: "Add images to convert them into a single PDF document"
         }
     },
     tr: {
@@ -164,6 +175,10 @@ export const translations = {
             split: {
                 name: "PDF Ayır",
                 desc: "Sayfaları ayırın veya belirli kısımları dışa aktarın"
+            },
+            imageToPdf: {
+                name: "Görselden PDF'e",
+                desc: "Görselleri PDF belgesine dönüştürün"
             }
         },
         mergeUI: {
@@ -199,6 +214,13 @@ export const translations = {
             pagesFound: "Sayfa bulundu",
             noFile: "Dosya seçilmedi",
             hint: "Seçmek/kaldırmak için sayfalara tıklayın"
+        },
+        imageToPdfUI: {
+            title: "Görselden PDF'e",
+            addImages: "Görsel Ekle",
+            createPdf: "PDF Oluştur",
+            clear: "Temizle",
+            placeholder: "Görselleri tek bir PDF belgesine dönüştürmek için ekleyin"
         }
     }
 };

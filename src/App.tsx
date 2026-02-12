@@ -74,6 +74,10 @@ export default function App() {
   const [selectedSplitPages, setSelectedSplitPages] = useState<number[]>([]);
   const [isRenderingThumbnails, setIsRenderingThumbnails] = useState(false);
 
+  // Image to PDF State
+  const [showImageToPdfUI, setShowImageToPdfUI] = useState(false);
+  const [imageToPdfFiles, setImageToPdfFiles] = useState<string[]>([]);
+
   useEffect(() => {
     localStorage.setItem("pdfova-lang", lang);
   }, [lang]);
@@ -109,7 +113,7 @@ export default function App() {
 
   const t = translations[lang] as any;
 
-  type ToolId = "compress" | "word" | "signature" | "resize" | "ocr" | "merge" | "split";
+  type ToolId = "compress" | "word" | "signature" | "resize" | "ocr" | "merge" | "split" | "imageToPdf";
 
   const tools: { id: ToolId; icon: any; colorClass: string; type: string; ext: string }[] = [
     { id: "compress", icon: FileUp, colorClass: "file-icon-pdf", type: "PDF", ext: "PDF" },
@@ -119,6 +123,7 @@ export default function App() {
     { id: "ocr", icon: ScanLine, colorClass: "file-icon-excel", type: "OCR", ext: "TXT" },
     { id: "merge", icon: Files, colorClass: "file-icon-pdf", type: "PDF", ext: "MIX" },
     { id: "split", icon: Scissors, colorClass: "file-icon-pdf", type: "PDF", ext: "CUT" },
+    { id: "imageToPdf", icon: FileUp, colorClass: "file-icon-ppt", type: "Image", ext: "PDF" },
   ];
 
   const filteredTools = category === 'all'
@@ -155,6 +160,13 @@ export default function App() {
         setShowSplitUI(true);
         if (!splitFile) {
           handleSelectSplitFile();
+        }
+        setProcessingId(null);
+        return;
+      } else if (toolId === 'imageToPdf') {
+        setShowImageToPdfUI(true);
+        if (imageToPdfFiles.length === 0) {
+          handleAddToImageToPdfList();
         }
         setProcessingId(null);
         return;
@@ -370,6 +382,47 @@ export default function App() {
     setSelectedSplitPages(prev =>
       prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx].sort((a, b) => a - b)
     );
+  };
+
+  // Image to PDF Handlers
+  const handleAddToImageToPdfList = async () => {
+    const selected = await open({
+      multiple: true,
+      filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp'] }]
+    });
+    if (selected) {
+      if (Array.isArray(selected)) {
+        setImageToPdfFiles(prev => [...prev, ...selected]);
+      } else if (typeof selected === 'string') {
+        setImageToPdfFiles(prev => [...prev, selected]);
+      }
+    }
+  };
+
+  const handleStartImageToPdf = async () => {
+    if (imageToPdfFiles.length === 0 || !outputDir) return;
+
+    try {
+      setProcessingId('img2pdf-process');
+      setStatus({ msg: t.processing, type: 'none' });
+
+      const result: ProcessResult = await invoke('images_to_pdf', {
+        files: imageToPdfFiles,
+        outputDir
+      });
+
+      setStatus({ msg: result.message, type: result.success ? 'success' : 'error' });
+      addHistory('imageToPdf', result.success);
+
+      if (result.success) {
+        setImageToPdfFiles([]);
+        setShowImageToPdfUI(false);
+      }
+    } catch (e) {
+      setStatus({ msg: String(e), type: 'error' });
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const handleStartSplit = async (mode: 'extract' | 'split_all') => {
@@ -761,6 +814,70 @@ export default function App() {
                     </div>
                   </div>
                 )}
+              </div>
+            ) : showImageToPdfUI ? (
+              // Image to PDF UI
+              <div className="px-6 py-4 h-full flex flex-col">
+                <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
+                  <div className="flex items-center space-x-3">
+                    <button onClick={() => setShowImageToPdfUI(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                      <X className="w-5 h-5" />
+                    </button>
+                    <h2 className="text-xl font-black uppercase tracking-tight">{t.imageToPdfUI?.title || "Images to PDF"}</h2>
+                  </div>
+                  <div className="flex space-x-3">
+                    <button onClick={() => setImageToPdfFiles([])} className="text-[10px] font-bold text-white/40 hover:text-white uppercase tracking-widest px-3 py-2">
+                      {t.imageToPdfUI?.clear || "CLEAR"}
+                    </button>
+                    <button onClick={handleAddToImageToPdfList} className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all">
+                      <Plus className="w-4 h-4" />
+                      <span>{t.imageToPdfUI?.addImages || "ADD"}</span>
+                    </button>
+                    <button
+                      onClick={handleStartImageToPdf}
+                      disabled={imageToPdfFiles.length === 0 || processingId === 'img2pdf-process'}
+                      className={`flex items-center space-x-2 px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${imageToPdfFiles.length === 0 ? 'bg-orange-500/20 text-white/20' : 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-900/20'}`}
+                    >
+                      {processingId === 'img2pdf-process' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                      <span>{t.imageToPdfUI?.createPdf || "CONVERT"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                  {imageToPdfFiles.length === 0 ? (
+                    <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-2xl">
+                      <ImageIcon className="w-16 h-16 text-white/5 mb-6" />
+                      <p className="text-white/20 text-[10px] font-bold uppercase tracking-widest max-w-[200px] text-center">{t.imageToPdfUI?.placeholder || "Add images to combine into PDF"}</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-10">
+                      {imageToPdfFiles.map((file, idx) => (
+                        <motion.div
+                          layout
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          key={`${file}-${idx}`}
+                          className="relative aspect-[3/4] bg-white/[0.03] rounded-xl border border-white/5 overflow-hidden group hover:border-white/20 transition-all"
+                        >
+                          <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+                            <ImageIcon className="w-8 h-8 text-orange-400/20 mb-3" />
+                            <span className="text-[10px] font-medium text-white/40 truncate w-full text-center px-2">{file.split(/[/\\]/).pop()}</span>
+                          </div>
+                          <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center text-[9px] font-bold text-white/60">
+                            {idx + 1}
+                          </div>
+                          <button
+                            onClick={() => setImageToPdfFiles(prev => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : activeTab === 'files' ? (
               <div className="px-6 py-8 max-w-2xl mx-auto w-full">
