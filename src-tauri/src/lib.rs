@@ -8,7 +8,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             commands::merge_pdfs,
-            commands::resize_image,
+            commands::resize_images,
             commands::compress_pdf,
             commands::extract_signature,
             commands::run_ocr,

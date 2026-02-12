@@ -79,6 +79,22 @@ export const translations = {
             mergeTitle: "PDF Merge List",
             noFiles: "No files added yet",
             orderHint: "Use buttons to reorder files"
+        },
+        resizeUI: {
+            title: "Batch Image Resize",
+            addImages: "Add Images",
+            clearList: "Clear",
+            startResize: "Resize",
+            noFiles: "No images added yet",
+            modeExact: "Exact Size",
+            modePercent: "Percentage",
+            modeWidth: "By Width",
+            modeHeight: "By Height",
+            widthLabel: "Width (px)",
+            heightLabel: "Height (px)",
+            percentLabel: "Scale (%)",
+            widthHint: "Height auto-calculated",
+            heightHint: "Width auto-calculated"
         }
     },
     tr: {
@@ -139,6 +155,22 @@ export const translations = {
             mergeTitle: "PDF Birleştirme Listesi",
             noFiles: "Henüz dosya eklenmedi",
             orderHint: "Sıralamayı değiştirmek için butonları kullanın"
+        },
+        resizeUI: {
+            title: "Toplu Görsel Boyutlandırma",
+            addImages: "Görsel Ekle",
+            clearList: "Temizle",
+            startResize: "Ölçekle",
+            noFiles: "Henüz görsel eklenmedi",
+            modeExact: "Tam Boyut",
+            modePercent: "Yüzde",
+            modeWidth: "Genişliğe Göre",
+            modeHeight: "Yüksekliğe Göre",
+            widthLabel: "Genişlik (px)",
+            heightLabel: "Yükseklik (px)",
+            percentLabel: "Oran (%)",
+            widthHint: "Yükseklik otomatik hesaplanır",
+            heightHint: "Genişlik otomatik hesaplanır"
         }
     }
 };

@@ -53,6 +53,14 @@ export default function App() {
   const [showMergeUI, setShowMergeUI] = useState(false);
   const [mergeFiles, setMergeFiles] = useState<string[]>([]);
 
+  // Resize Tool State
+  const [showResizeUI, setShowResizeUI] = useState(false);
+  const [resizeFiles, setResizeFiles] = useState<string[]>([]);
+  const [resizeMode, setResizeMode] = useState<'exact' | 'percent' | 'width' | 'height'>('percent');
+  const [resizeWidth, setResizeWidth] = useState<string>('800');
+  const [resizeHeight, setResizeHeight] = useState<string>('600');
+  const [resizePercent, setResizePercent] = useState<string>('50');
+
   useEffect(() => {
     localStorage.setItem("pdfova-lang", lang);
   }, [lang]);
@@ -124,10 +132,12 @@ export default function App() {
         setProcessingId(null); // Stop spinner immediately as we are just showing UI
         return;
       } else if (toolId === 'resize') {
-        const selected = await open({ multiple: false, filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }] });
-        if (selected && typeof selected === 'string') {
-          result = await invoke('resize_image', { path: selected, width: 800, height: 600, outputDir: outputDir });
-        } else return;
+        setShowResizeUI(true);
+        if (resizeFiles.length === 0) {
+          handleAddToResizeList();
+        }
+        setProcessingId(null);
+        return;
       } else if (toolId === 'compress') {
         const selected = await open({ multiple: false, filters: [{ name: 'PDF', extensions: ['pdf'] }] });
         if (selected && typeof selected === 'string') {
@@ -222,6 +232,73 @@ export default function App() {
     }
   };
 
+  // Resize UI Handlers
+  const handleAddToResizeList = async () => {
+    const selected = await open({
+      multiple: true,
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'] }]
+    });
+    if (selected) {
+      if (Array.isArray(selected)) {
+        setResizeFiles(prev => [...prev, ...selected]);
+      } else if (typeof selected === 'string') {
+        setResizeFiles(prev => [...prev, selected]);
+      }
+    }
+  };
+
+  const handleRemoveFromResizeList = (index: number) => {
+    setResizeFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleStartResize = async () => {
+    if (resizeFiles.length === 0) {
+      setStatus({ msg: 'No images to resize', type: 'error' });
+      return;
+    }
+    if (!outputDir) {
+      setStatus({ msg: t.selectFolderFirst, type: 'error' });
+      return;
+    }
+
+    try {
+      setProcessingId('resize-process');
+      setStatus({ msg: t.processing, type: 'none' });
+
+      const params: any = {
+        files: resizeFiles,
+        mode: resizeMode,
+        outputDir: outputDir,
+      };
+
+      if (resizeMode === 'exact') {
+        params.width = parseInt(resizeWidth) || 800;
+        params.height = parseInt(resizeHeight) || 600;
+      } else if (resizeMode === 'percent') {
+        params.percent = parseFloat(resizePercent) || 50;
+      } else if (resizeMode === 'width') {
+        params.width = parseInt(resizeWidth) || 800;
+      } else if (resizeMode === 'height') {
+        params.height = parseInt(resizeHeight) || 600;
+      }
+
+      const result: ProcessResult = await invoke('resize_images', params);
+
+      setStatus({ msg: result.message, type: result.success ? 'success' : 'error' });
+      addHistory('resize', result.success);
+
+      if (result.success) {
+        setResizeFiles([]);
+        setShowResizeUI(false);
+      }
+    } catch (e) {
+      setStatus({ msg: String(e), type: 'error' });
+    } finally {
+      setProcessingId(null);
+      setTimeout(() => setStatus({ msg: '', type: 'none' }), 5000);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0a] text-white overflow-hidden font-sans select-none">
 
@@ -248,7 +325,7 @@ export default function App() {
           </div>
         </div>
 
-        {activeTab === 'home' && !showMergeUI && (
+        {activeTab === 'home' && !showMergeUI && !showResizeUI && (
           <nav className="flex space-x-6 overflow-x-auto no-scrollbar border-b border-white/5">
             {['all', 'pdf', 'word', 'image', 'ocr'].map((cat) => (
               <button
@@ -277,7 +354,7 @@ export default function App() {
             transition={{ duration: 0.15 }}
             className="h-full"
           >
-            {activeTab === 'home' && !showMergeUI ? (
+            {activeTab === 'home' && !showMergeUI && !showResizeUI ? (
               <div className="flux-grid">
                 {filteredTools.map((tool) => (
                   <div
@@ -374,6 +451,120 @@ export default function App() {
                             </button>
                           </div>
                         </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : showResizeUI ? (
+              // Resize UI
+              <div className="px-6 py-4 h-full flex flex-col">
+                <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
+                  <div className="flex items-center space-x-3">
+                    <button onClick={() => setShowResizeUI(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                      <X className="w-5 h-5" />
+                    </button>
+                    <h2 className="text-xl font-black uppercase tracking-tight">{t.resizeUI?.title || "Batch Resize"}</h2>
+                  </div>
+                  <div className="flex space-x-3">
+                    <button onClick={() => setResizeFiles([])} className="text-[10px] font-bold text-white/40 hover:text-white uppercase tracking-widest px-3 py-2">
+                      {t.resizeUI?.clearList || "CLEAR"}
+                    </button>
+                    <button onClick={handleAddToResizeList} className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all">
+                      <Plus className="w-4 h-4" />
+                      <span>{t.resizeUI?.addImages || "ADD"}</span>
+                    </button>
+                    <button
+                      onClick={handleStartResize}
+                      disabled={resizeFiles.length === 0 || processingId === 'resize-process'}
+                      className={`flex items-center space-x-2 px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${resizeFiles.length === 0 ? 'bg-[#e53935]/20 text-white/20 cursor-not-allowed' : 'bg-[#e53935] hover:bg-[#d32f2f] text-white shadow-lg shadow-red-900/20'}`}
+                    >
+                      {processingId === 'resize-process' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                      <span>{t.resizeUI?.startResize || "RESIZE"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Resize Mode Selector */}
+                <div className="mb-6">
+                  <div className="grid grid-cols-4 gap-2 mb-5">
+                    {(['exact', 'percent', 'width', 'height'] as const).map(mode => (
+                      <button
+                        key={mode}
+                        onClick={() => setResizeMode(mode)}
+                        className={`py-3 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all ${resizeMode === mode ? 'bg-white text-black border-white' : 'bg-transparent border-white/10 text-white/40 hover:border-white/20'}`}
+                      >
+                        {t.resizeUI?.[`mode${mode.charAt(0).toUpperCase() + mode.slice(1)}` as keyof typeof t.resizeUI] || mode}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Mode-specific inputs */}
+                  <div className="bg-white/[0.02] rounded-xl p-5 border border-white/5">
+                    {resizeMode === 'exact' && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">{t.resizeUI?.widthLabel || "Width (px)"}</label>
+                          <input type="number" value={resizeWidth} onChange={e => setResizeWidth(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-[#e53935]" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">{t.resizeUI?.heightLabel || "Height (px)"}</label>
+                          <input type="number" value={resizeHeight} onChange={e => setResizeHeight(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-[#e53935]" />
+                        </div>
+                      </div>
+                    )}
+                    {resizeMode === 'percent' && (
+                      <div>
+                        <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">{t.resizeUI?.percentLabel || "Scale (%)"}</label>
+                        <div className="flex items-center space-x-4">
+                          <input type="range" min="5" max="200" value={resizePercent} onChange={e => setResizePercent(e.target.value)} className="flex-1 accent-[#e53935]" />
+                          <input type="number" value={resizePercent} onChange={e => setResizePercent(e.target.value)} className="w-20 bg-black/40 border border-white/10 rounded-lg px-3 py-3 text-sm text-white font-medium text-center focus:outline-none focus:border-[#e53935]" />
+                          <span className="text-white/30 text-xs font-bold">%</span>
+                        </div>
+                      </div>
+                    )}
+                    {resizeMode === 'width' && (
+                      <div>
+                        <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">{t.resizeUI?.widthLabel || "Width (px)"}</label>
+                        <input type="number" value={resizeWidth} onChange={e => setResizeWidth(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-[#e53935]" />
+                        <p className="text-[9px] text-white/20 mt-2 font-medium uppercase tracking-widest">{t.resizeUI?.widthHint || "Height auto-calculated"}</p>
+                      </div>
+                    )}
+                    {resizeMode === 'height' && (
+                      <div>
+                        <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">{t.resizeUI?.heightLabel || "Height (px)"}</label>
+                        <input type="number" value={resizeHeight} onChange={e => setResizeHeight(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-[#e53935]" />
+                        <p className="text-[9px] text-white/20 mt-2 font-medium uppercase tracking-widest">{t.resizeUI?.heightHint || "Width auto-calculated"}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* File List */}
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                  {resizeFiles.length === 0 ? (
+                    <div className="h-48 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-xl">
+                      <ImageIcon className="w-12 h-12 text-white/10 mb-4" />
+                      <p className="text-white/30 text-xs font-bold uppercase tracking-widest">{t.resizeUI?.noFiles || "No images"}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {resizeFiles.map((file, idx) => (
+                        <div
+                          key={`${file}-${idx}`}
+                          className="bg-[#1a1a1a] p-3 rounded-lg flex items-center justify-between group hover:bg-[#222] border border-white/5 transition-colors"
+                        >
+                          <div className="flex items-center space-x-4 overflow-hidden">
+                            <span className="text-[10px] font-bold text-white/20 w-6">{idx + 1}</span>
+                            <ImageIcon className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                            <span className="text-xs font-medium text-white/80 truncate" title={file}>
+                              {file.split(/[/\\]/).pop()}
+                            </span>
+                          </div>
+                          <button onClick={() => handleRemoveFromResizeList(idx)} className="p-1.5 rounded hover:bg-red-500/20 text-white/20 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   )}

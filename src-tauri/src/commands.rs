@@ -95,22 +95,80 @@ pub async fn merge_pdfs(files: Vec<String>, output_dir: String) -> Result<Proces
 }
 
 #[tauri::command]
-pub async fn resize_image(path: String, width: u32, height: u32, output_dir: String) -> Result<ProcessResult, String> {
-    let img = image::open(&path).map_err(|e| format!("Image open error: {}", e))?;
-    let resized = img.resize_to_fill(width, height, image::imageops::FilterType::Lanczos3);
-    
-    let input_path = Path::new(&path);
-    let stem = input_path.file_stem().unwrap().to_str().unwrap();
-    let ext = input_path.extension().unwrap().to_str().unwrap();
-    
-    let output_path = Path::new(&output_dir).join(format!("{}_resized.{}", stem, ext));
-    
-    resized.save(&output_path).map_err(|e| format!("Image save error: {}", e))?;
+pub async fn resize_images(
+    files: Vec<String>,
+    mode: String,       // "exact" | "percent" | "width" | "height"
+    width: Option<u32>,
+    height: Option<u32>,
+    percent: Option<f64>,
+    output_dir: String,
+) -> Result<ProcessResult, String> {
+    if files.is_empty() {
+        return Err("No files provided".to_string());
+    }
+
+    if !Path::new(&output_dir).exists() {
+        std::fs::create_dir_all(&output_dir)
+            .map_err(|e| format!("Failed to create output dir: {}", e))?;
+    }
+
+    let mut success_count = 0;
+    let mut fail_count = 0;
+
+    for file_path in &files {
+        let img = match image::open(file_path) {
+            Ok(i) => i,
+            Err(_) => { fail_count += 1; continue; }
+        };
+
+        let (orig_w, orig_h) = (img.width(), img.height());
+
+        let (new_w, new_h) = match mode.as_str() {
+            "exact" => {
+                let w = width.unwrap_or(orig_w);
+                let h = height.unwrap_or(orig_h);
+                (w, h)
+            }
+            "percent" => {
+                let p = percent.unwrap_or(100.0) / 100.0;
+                ((orig_w as f64 * p) as u32, (orig_h as f64 * p) as u32)
+            }
+            "width" => {
+                let w = width.unwrap_or(orig_w);
+                let ratio = w as f64 / orig_w as f64;
+                (w, (orig_h as f64 * ratio) as u32)
+            }
+            "height" => {
+                let h = height.unwrap_or(orig_h);
+                let ratio = h as f64 / orig_h as f64;
+                ((orig_w as f64 * ratio) as u32, h)
+            }
+            _ => (orig_w, orig_h),
+        };
+
+        if new_w == 0 || new_h == 0 {
+            fail_count += 1;
+            continue;
+        }
+
+        let resized = img.resize_exact(new_w, new_h, image::imageops::FilterType::Lanczos3);
+
+        let input_path = Path::new(file_path);
+        let stem = input_path.file_stem().and_then(|s| s.to_str()).unwrap_or("output");
+        let ext = input_path.extension().and_then(|s| s.to_str()).unwrap_or("png");
+
+        let output_path = Path::new(&output_dir).join(format!("{}_{}x{}.{}", stem, new_w, new_h, ext));
+
+        match resized.save(&output_path) {
+            Ok(_) => success_count += 1,
+            Err(_) => fail_count += 1,
+        }
+    }
 
     Ok(ProcessResult {
-        success: true,
-        message: format!("Success: Image resized to {}x{} saved in {:?}", width, height, output_path),
-        output_path: Some(output_path.to_string_lossy().to_string()),
+        success: success_count > 0,
+        message: format!("{} resized, {} failed", success_count, fail_count),
+        output_path: Some(output_dir),
     })
 }
 
