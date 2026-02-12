@@ -14,7 +14,12 @@ import {
   Loader2,
   MoreVertical,
   HelpCircle,
-  Info
+  Info,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  Plus,
+  X
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -43,6 +48,10 @@ export default function App() {
     const saved = localStorage.getItem("pdfova-history");
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Merge Tool State
+  const [showMergeUI, setShowMergeUI] = useState(false);
+  const [mergeFiles, setMergeFiles] = useState<string[]>([]);
 
   useEffect(() => {
     localStorage.setItem("pdfova-lang", lang);
@@ -107,10 +116,13 @@ export default function App() {
 
       let result: ProcessResult;
       if (toolId === 'merge') {
-        const selected = await open({ multiple: true, filters: [{ name: 'PDF', extensions: ['pdf'] }] });
-        if (selected && Array.isArray(selected)) {
-          result = await invoke('merge_pdfs', { files: selected, outputDir: outputDir });
-        } else return;
+        setShowMergeUI(true);
+        // Automatically open file dialog if list is empty
+        if (mergeFiles.length === 0) {
+          handleAddToMergeList();
+        }
+        setProcessingId(null); // Stop spinner immediately as we are just showing UI
+        return;
       } else if (toolId === 'resize') {
         const selected = await open({ multiple: false, filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }] });
         if (selected && typeof selected === 'string') {
@@ -148,6 +160,68 @@ export default function App() {
     }
   };
 
+  // Merge UI Handlers
+  const handleAddToMergeList = async () => {
+    const selected = await open({
+      multiple: true,
+      filters: [{ name: 'PDF', extensions: ['pdf'] }]
+    });
+    if (selected) {
+      if (Array.isArray(selected)) {
+        setMergeFiles(prev => [...prev, ...selected]);
+      } else if (typeof selected === 'string') {
+        setMergeFiles(prev => [...prev, selected]);
+      }
+    }
+  };
+
+  const handleRemoveFromMergeList = (index: number) => {
+    setMergeFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleMoveItem = (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === mergeFiles.length - 1) return;
+
+    setMergeFiles(prev => {
+      const newList = [...prev];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      [newList[index], newList[targetIndex]] = [newList[targetIndex], newList[index]];
+      return newList;
+    });
+  };
+
+  const handleStartMerge = async () => {
+    if (mergeFiles.length < 2) {
+      setStatus({ msg: "Please select at least 2 files", type: 'error' });
+      return;
+    }
+    if (!outputDir) {
+      setStatus({ msg: t.selectFolderFirst, type: 'error' });
+      return;
+    }
+
+    try {
+      setProcessingId('merge-process');
+      setStatus({ msg: t.processing, type: 'none' });
+
+      const result: ProcessResult = await invoke('merge_pdfs', { files: mergeFiles, outputDir: outputDir });
+
+      setStatus({ msg: result.message, type: result.success ? 'success' : 'error' });
+      addHistory('merge', result.success);
+
+      if (result.success) {
+        setMergeFiles([]);
+        setShowMergeUI(false);
+      }
+    } catch (e) {
+      setStatus({ msg: String(e), type: 'error' });
+    } finally {
+      setProcessingId(null);
+      setTimeout(() => setStatus({ msg: '', type: 'none' }), 5000);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0a] text-white overflow-hidden font-sans select-none">
 
@@ -174,7 +248,7 @@ export default function App() {
           </div>
         </div>
 
-        {activeTab === 'home' && (
+        {activeTab === 'home' && !showMergeUI && (
           <nav className="flex space-x-6 overflow-x-auto no-scrollbar border-b border-white/5">
             {['all', 'pdf', 'word', 'image', 'ocr'].map((cat) => (
               <button
@@ -203,7 +277,7 @@ export default function App() {
             transition={{ duration: 0.15 }}
             className="h-full"
           >
-            {activeTab === 'home' ? (
+            {activeTab === 'home' && !showMergeUI ? (
               <div className="flux-grid">
                 {filteredTools.map((tool) => (
                   <div
@@ -224,6 +298,86 @@ export default function App() {
                   </div>
                 ))}
 
+              </div>
+            ) : showMergeUI ? (
+              // Merge UI Overlay
+              <div className="px-6 py-4 h-full flex flex-col">
+                <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
+                  <div className="flex items-center space-x-3">
+                    <button onClick={() => setShowMergeUI(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                      <X className="w-5 h-5" />
+                    </button>
+                    <h2 className="text-xl font-black uppercase tracking-tight">{t.mergeUI?.mergeTitle || "PDF Merge List"}</h2>
+                  </div>
+                  <div className="flex space-x-3">
+                    <button onClick={() => setMergeFiles([])} className="text-[10px] font-bold text-white/40 hover:text-white uppercase tracking-widest px-3 py-2">
+                      {t.mergeUI?.clearList || "CLEAR"}
+                    </button>
+                    <button onClick={handleAddToMergeList} className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all">
+                      <Plus className="w-4 h-4" />
+                      <span>{t.mergeUI?.addItems || "ADD"}</span>
+                    </button>
+                    <button
+                      onClick={handleStartMerge}
+                      disabled={mergeFiles.length < 2 || processingId === 'merge-process'}
+                      className={`flex items-center space-x-2 px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${mergeFiles.length < 2 ? 'bg-[#e53935]/20 text-white/20 cursor-not-allowed' : 'bg-[#e53935] hover:bg-[#d32f2f] text-white shadow-lg shadow-red-900/20'}`}
+                    >
+                      {processingId === 'merge-process' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Files className="w-4 h-4" />}
+                      <span>{t.mergeUI?.startMerge || "MERGE"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                  {mergeFiles.length === 0 ? (
+                    <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-xl">
+                      <Files className="w-12 h-12 text-white/10 mb-4" />
+                      <p className="text-white/30 text-xs font-bold uppercase tracking-widest">{t.mergeUI?.noFiles || "No files added"}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {mergeFiles.map((file, idx) => (
+                        <motion.div
+                          layout
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          key={`${file}-${idx}`}
+                          className="bg-[#1a1a1a] p-3 rounded-lg flex items-center justify-between group hover:bg-[#222] border border-white/5 transition-colors"
+                        >
+                          <div className="flex items-center space-x-4 overflow-hidden">
+                            <span className="text-[10px] font-bold text-white/20 w-6">{idx + 1}</span>
+                            <FileText className="w-4 h-4 text-[#e53935] flex-shrink-0" />
+                            <span className="text-xs font-medium text-white/80 truncate dir-rtl text-left" title={file}>
+                              {file.split(/[/\\]/).pop()}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleMoveItem(idx, 'up')}
+                              disabled={idx === 0}
+                              className={`p-1.5 rounded hover:bg-white/10 ${idx === 0 ? 'text-white/10' : 'text-white/60'}`}
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleMoveItem(idx, 'down')}
+                              disabled={idx === mergeFiles.length - 1}
+                              className={`p-1.5 rounded hover:bg-white/10 ${idx === mergeFiles.length - 1 ? 'text-white/10' : 'text-white/60'}`}
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+                            <div className="w-px h-4 bg-white/10 mx-2" />
+                            <button onClick={() => handleRemoveFromMergeList(idx)} className="p-1.5 rounded hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : activeTab === 'files' ? (
               <div className="px-6 py-8 max-w-2xl mx-auto w-full">

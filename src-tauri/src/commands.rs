@@ -12,49 +12,84 @@ pub struct ProcessResult {
 
 #[tauri::command]
 pub async fn merge_pdfs(files: Vec<String>, output_dir: String) -> Result<ProcessResult, String> {
-    if files.is_empty() {
-        return Err("No files provided".to_string());
+    if files.len() < 2 {
+        return Err("Need at least 2 files to merge".to_string());
     }
 
-    let mut max_id = 0;
-    let mut p_doc = Document::with_version("1.5");
-    let mut pages = BTreeMap::new();
-    let mut p_count = 0;
+    if !Path::new(&output_dir).exists() {
+        std::fs::create_dir_all(&output_dir).map_err(|e| format!("Failed to create output dir: {}", e))?;
+    }
 
-    for file in files {
-        let mut doc = Document::load(&file).map_err(|e| format!("Load error: {}", e))?;
+    let mut all_objects = BTreeMap::new();
+    let mut all_page_ids = Vec::new();
+    let mut max_id: u32 = 0;
+
+    for file_path in &files {
+        let mut doc = Document::load(file_path)
+            .map_err(|e| format!("Load error for {}: {}", file_path, e))?;
+        doc.decompress();
         doc.renumber_objects_with(max_id + 1);
         max_id = doc.max_id;
 
-        for (id, object) in doc.objects.iter() {
-            p_doc.objects.insert(*id, object.clone());
+        // Collect page IDs (leaf Page objects) in order
+        let mut sorted_pages: Vec<_> = doc.get_pages().into_iter().collect();
+        sorted_pages.sort_by_key(|(page_num, _)| *page_num);
+        for (_, obj_id) in &sorted_pages {
+            all_page_ids.push(*obj_id);
         }
 
-        for (_, id) in doc.get_pages() {
-            p_count += 1;
-            pages.insert(p_count, id);
+        // Copy all objects except old Catalog and Pages tree nodes
+        for (id, object) in doc.objects {
+            let skip = match object.type_name() {
+                Ok(t) => t == "Catalog" || t == "Pages",
+                Err(_) => false,
+            };
+            if !skip {
+                all_objects.insert(id, object);
+            }
         }
     }
 
-    let pages_id = p_doc.add_object(Dictionary::from_iter(vec![
+    if all_page_ids.is_empty() {
+        return Err("No pages found in the provided files".to_string());
+    }
+
+    let total_pages = all_page_ids.len();
+
+    // Build new document
+    let mut merged = Document::with_version("1.7");
+    merged.objects = all_objects;
+
+    // New Pages node
+    let pages_id = merged.add_object(Dictionary::from_iter(vec![
         ("Type", Object::Name("Pages".into())),
-        ("Count", Object::Integer(p_count as i64)),
-        ("Kids", Object::Array(pages.values().map(|&id| Object::Reference(id)).collect())),
+        ("Count", Object::Integer(total_pages as i64)),
+        ("Kids", Object::Array(all_page_ids.into_iter().map(Object::Reference).collect())),
     ]));
 
-    let catalog_id = p_doc.add_object(Dictionary::from_iter(vec![
+    // New Catalog
+    let catalog_id = merged.add_object(Dictionary::from_iter(vec![
         ("Type", Object::Name("Catalog".into())),
         ("Pages", Object::Reference(pages_id)),
     ]));
 
-    p_doc.trailer.set("Root", Object::Reference(catalog_id));
-    
-    let output_path = Path::new(&output_dir).join("merged_document.pdf");
-    p_doc.save(&output_path).map_err(|e| format!("Save error: {}", e))?;
+    merged.trailer.set("Root", Object::Reference(catalog_id));
+
+    // Save
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or(std::time::Duration::from_secs(0))
+        .as_secs();
+
+    let output_path = Path::new(&output_dir).join(format!("merged_{}.pdf", timestamp));
+    let mut out_file = std::fs::File::create(&output_path)
+        .map_err(|e| format!("Create file error: {}", e))?;
+    merged.save_to(&mut out_file)
+        .map_err(|e| format!("Save error: {}", e))?;
 
     Ok(ProcessResult {
         success: true,
-        message: format!("Success: Merged {} pages into {:?}", p_count, output_path),
+        message: format!("Merged {} pages → {:?}", total_pages, output_path),
         output_path: Some(output_path.to_string_lossy().to_string()),
     })
 }

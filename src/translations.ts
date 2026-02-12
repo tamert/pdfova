@@ -71,6 +71,14 @@ export const translations = {
                 name: "Merge PDF",
                 desc: "Combine multiple PDF files into one"
             }
+        },
+        mergeUI: {
+            addItems: "Add Files",
+            clearList: "Clear List",
+            startMerge: "Merge Now",
+            mergeTitle: "PDF Merge List",
+            noFiles: "No files added yet",
+            orderHint: "Use buttons to reorder files"
         }
     },
     tr: {
@@ -123,6 +131,14 @@ export const translations = {
                 name: "PDF Birleştir",
                 desc: "Birden fazla PDF'i tek belge yapın"
             }
+        },
+        mergeUI: {
+            addItems: "Dosya Ekle",
+            clearList: "Listeyi Temizle",
+            startMerge: "Birleştir",
+            mergeTitle: "PDF Birleştirme Listesi",
+            noFiles: "Henüz dosya eklenmedi",
+            orderHint: "Sıralamayı değiştirmek için butonları kullanın"
         }
     }
 };
