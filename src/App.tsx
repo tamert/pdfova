@@ -19,8 +19,14 @@ import {
   ArrowUp,
   ArrowDown,
   Plus,
-  X
+  X,
+  Scissors
 } from "lucide-react";
+import * as pdfjs from "pdfjs-dist";
+
+// Set PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { translations, versionInfo, Language } from "./translations";
@@ -61,6 +67,13 @@ export default function App() {
   const [resizeHeight, setResizeHeight] = useState<string>('600');
   const [resizePercent, setResizePercent] = useState<string>('50');
 
+  // Split Tool State
+  const [showSplitUI, setShowSplitUI] = useState(false);
+  const [splitFile, setSplitFile] = useState<string | null>(null);
+  const [splitThumbnails, setSplitThumbnails] = useState<string[]>([]);
+  const [selectedSplitPages, setSelectedSplitPages] = useState<number[]>([]);
+  const [isRenderingThumbnails, setIsRenderingThumbnails] = useState(false);
+
   useEffect(() => {
     localStorage.setItem("pdfova-lang", lang);
   }, [lang]);
@@ -96,7 +109,7 @@ export default function App() {
 
   const t = translations[lang] as any;
 
-  type ToolId = "compress" | "word" | "signature" | "resize" | "ocr" | "merge";
+  type ToolId = "compress" | "word" | "signature" | "resize" | "ocr" | "merge" | "split";
 
   const tools: { id: ToolId; icon: any; colorClass: string; type: string; ext: string }[] = [
     { id: "compress", icon: FileUp, colorClass: "file-icon-pdf", type: "PDF", ext: "PDF" },
@@ -105,6 +118,7 @@ export default function App() {
     { id: "resize", icon: ImageIcon, colorClass: "file-icon-ppt", type: "Image", ext: "IMG" },
     { id: "ocr", icon: ScanLine, colorClass: "file-icon-excel", type: "OCR", ext: "TXT" },
     { id: "merge", icon: Files, colorClass: "file-icon-pdf", type: "PDF", ext: "MIX" },
+    { id: "split", icon: Scissors, colorClass: "file-icon-pdf", type: "PDF", ext: "CUT" },
   ];
 
   const filteredTools = category === 'all'
@@ -135,6 +149,13 @@ export default function App() {
         setShowResizeUI(true);
         if (resizeFiles.length === 0) {
           handleAddToResizeList();
+        }
+        setProcessingId(null);
+        return;
+      } else if (toolId === 'split') {
+        setShowSplitUI(true);
+        if (!splitFile) {
+          handleSelectSplitFile();
         }
         setProcessingId(null);
         return;
@@ -299,6 +320,102 @@ export default function App() {
     }
   };
 
+  // Split UI Handlers
+  const handleSelectSplitFile = async () => {
+    const selected = await open({
+      multiple: false,
+      filters: [{ name: 'PDF', extensions: ['pdf'] }]
+    });
+    if (selected && typeof selected === 'string') {
+      setSplitFile(selected);
+      setSelectedSplitPages([]);
+      loadPDFThumbnails(selected);
+    }
+  };
+
+  const loadPDFThumbnails = async (filePath: string) => {
+    try {
+      setIsRenderingThumbnails(true);
+      setSplitThumbnails([]);
+
+      // We need to read the file as bytes to pass to PDF.js
+      // Note: In Tauri v2, we use invoke('tauri', 'read_file') or plugins
+      // For now, let's assume raw fetch to the local file asset path works or use tauri-plugin-fs
+      // Since I don't have tauri-plugin-fs easily configured, I'll use a placeholder or specific method
+      // Actually, I can use invoke('read_file_binary', { path: filePath }) if I had it.
+      // Let's use a workaround: PDF.js can load from URL. We can use convertFileSrc
+      const { convertFileSrc } = await import("@tauri-apps/api/core");
+      const assetUrl = convertFileSrc(filePath);
+
+      const loadingTask = pdfjs.getDocument(assetUrl);
+      const pdf = await loadingTask.promise;
+      const thumbs: string[] = [];
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 0.3 });
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        if (context) {
+          await (page as any).render({ canvasContext: context, viewport }).promise;
+          thumbs.push(canvas.toDataURL());
+        }
+      }
+      setSplitThumbnails(thumbs);
+    } catch (e) {
+      setStatus({ msg: "Error loading PDF: " + String(e), type: "error" });
+    } finally {
+      setIsRenderingThumbnails(false);
+    }
+  };
+
+  const togglePageSelection = (idx: number) => {
+    setSelectedSplitPages(prev =>
+      prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx].sort((a, b) => a - b)
+    );
+  };
+
+  const handleStartSplit = async (mode: 'extract' | 'split_all') => {
+    if (!splitFile || !outputDir) return;
+
+    try {
+      setProcessingId('split-process');
+      setStatus({ msg: t.processing, type: 'none' });
+
+      let ranges: number[][] = [];
+      if (mode === 'split_all') {
+        ranges = splitThumbnails.map((_, i) => [i + 1]);
+      } else {
+        if (selectedSplitPages.length === 0) {
+          setStatus({ msg: "Select pages first", type: "error" });
+          return;
+        }
+        ranges = [selectedSplitPages.map(p => p + 1)]; // 1-indexed for backend
+      }
+
+      const result: ProcessResult = await invoke('split_pdf', {
+        path: splitFile,
+        ranges,
+        outputDir
+      });
+
+      setStatus({ msg: result.message, type: result.success ? 'success' : 'error' });
+      addHistory('split', result.success);
+
+      if (result.success) {
+        setShowSplitUI(false);
+        setSplitFile(null);
+      }
+    } catch (e) {
+      setStatus({ msg: String(e), type: 'error' });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0a] text-white overflow-hidden font-sans select-none">
 
@@ -325,7 +442,7 @@ export default function App() {
           </div>
         </div>
 
-        {activeTab === 'home' && !showMergeUI && !showResizeUI && (
+        {activeTab === 'home' && !showMergeUI && !showResizeUI && !showSplitUI && (
           <nav className="flex space-x-6 overflow-x-auto no-scrollbar border-b border-white/5">
             {['all', 'pdf', 'word', 'image', 'ocr'].map((cat) => (
               <button
@@ -354,7 +471,7 @@ export default function App() {
             transition={{ duration: 0.15 }}
             className="h-full"
           >
-            {activeTab === 'home' && !showMergeUI && !showResizeUI ? (
+            {activeTab === 'home' && !showMergeUI && !showResizeUI && !showSplitUI ? (
               <div className="flux-grid">
                 {filteredTools.map((tool) => (
                   <div
@@ -569,6 +686,87 @@ export default function App() {
                     </div>
                   )}
                 </div>
+              </div>
+            ) : showSplitUI ? (
+              // Split UI
+              <div className="px-6 py-4 h-full flex flex-col">
+                <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
+                  <div className="flex items-center space-x-3">
+                    <button onClick={() => setShowSplitUI(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                      <X className="w-5 h-5" />
+                    </button>
+                    <h2 className="text-xl font-black uppercase tracking-tight">{t.splitUI?.title || "Split PDF"}</h2>
+                  </div>
+                  <div className="flex space-x-3">
+                    <button onClick={handleSelectSplitFile} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all">
+                      {t.splitUI?.selectFile || "CHANGE FILE"}
+                    </button>
+                    <button
+                      onClick={() => handleStartSplit('split_all')}
+                      disabled={!splitFile || isRenderingThumbnails || processingId === 'split-process'}
+                      className="bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all text-white/60"
+                    >
+                      {t.splitUI?.modeSplitAll || "SPLIT ALL"}
+                    </button>
+                    <button
+                      onClick={() => handleStartSplit('extract')}
+                      disabled={selectedSplitPages.length === 0 || processingId === 'split-process'}
+                      className={`flex items-center space-x-2 px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${selectedSplitPages.length === 0 ? 'bg-[#e53935]/20 text-white/20' : 'bg-[#e53935] hover:bg-[#d32f2f] text-white shadow-lg shadow-red-900/20'}`}
+                    >
+                      {processingId === 'split-process' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Scissors className="w-4 h-4" />}
+                      <span>{t.splitUI?.modeExtract || "EXTRACT"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {!splitFile ? (
+                  <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:bg-white/[0.02] transition-colors" onClick={handleSelectSplitFile}>
+                    <FileUp className="w-16 h-16 text-white/10 mb-6" />
+                    <p className="text-white/40 text-[10px] font-black uppercase tracking-[4px]">{t.splitUI?.noFile || "SELECT A PDF TO SPLIT"}</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col min-h-0">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-4">
+                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{t.splitUI?.pagesFound || "Pages"}: {splitThumbnails.length}</span>
+                        <span className="text-[10px] font-bold text-[#e53935] uppercase tracking-widest">|  {selectedSplitPages.length} SELECTED</span>
+                      </div>
+                      <p className="text-[9px] text-white/20 uppercase font-medium">{t.splitUI?.hint || "Click to select"}</p>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                      {isRenderingThumbnails ? (
+                        <div className="h-full flex flex-col items-center justify-center">
+                          <Loader2 className="w-12 h-12 animate-spin text-white/10 mb-4" />
+                          <p className="text-white/20 text-[10px] font-bold uppercase tracking-widest">Rendering Previews...</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 pb-10">
+                          {splitThumbnails.map((thumb, idx) => (
+                            <motion.div
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              key={idx}
+                              onClick={() => togglePageSelection(idx)}
+                              className={`relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all ${selectedSplitPages.includes(idx) ? 'border-[#e53935] ring-4 ring-[#e53935]/20' : 'border-white/5 grayscale-[0.5] hover:grayscale-0'}`}
+                            >
+                              <img src={thumb} alt={`Page ${idx + 1}`} className="w-full h-auto" />
+                              <div className={`absolute inset-0 transition-colors ${selectedSplitPages.includes(idx) ? 'bg-[#e53935]/10' : 'bg-transparent hover:bg-white/5'}`} />
+                              <div className="absolute top-2 left-2 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black bg-black/80 text-white border border-white/20">
+                                {idx + 1}
+                              </div>
+                              {selectedSplitPages.includes(idx) && (
+                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#e53935] flex items-center justify-center">
+                                  <Scissors className="w-2.5 h-2.5 text-white" />
+                                </div>
+                              )}
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : activeTab === 'files' ? (
               <div className="px-6 py-8 max-w-2xl mx-auto w-full">

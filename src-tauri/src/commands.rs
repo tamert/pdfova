@@ -486,4 +486,117 @@ pub async fn convert_to_word(path: String, output_dir: String) -> Result<Process
         output_path: Some(output.to_string_lossy().to_string()),
     })
 }
+#[tauri::command]
+pub async fn split_pdf(
+    path: String,
+    ranges: Vec<Vec<u32>>, // Each inner Vec is a group of pages to save as one file
+    output_dir: String,
+) -> Result<ProcessResult, String> {
+    if ranges.is_empty() {
+        return Err("No page ranges provided".to_string());
+    }
+
+    if !Path::new(&output_dir).exists() {
+        std::fs::create_dir_all(&output_dir).map_err(|e| format!("Failed to create output dir: {}", e))?;
+    }
+
+    let input_path = Path::new(&path);
+    let stem = input_path.file_stem().and_then(|s| s.to_str()).unwrap_or("split");
+
+    let mut success_count = 0;
+
+    for (idx, page_group) in ranges.iter().enumerate() {
+        if page_group.is_empty() {
+            continue;
+        }
+
+        // We reload the document for each split to stay safe with object renumbering,
+        // though it's less efficient, it's more robust for a "v1".
+        let mut doc = Document::load(&path).map_err(|e| format!("Load error: {}", e))?;
+        doc.decompress();
+
+        let mut group_objects: BTreeMap<(u32, u16), Object> = BTreeMap::new();
+        let mut group_page_ids: Vec<(u32, u16)> = Vec::new();
+        
+        // Find the page objects for the requested pages
+        let pages = doc.get_pages();
+        for &page_num in page_group {
+            if let Some(&obj_id) = pages.get(&page_num) {
+                group_page_ids.push(obj_id);
+            }
+        }
+
+        if group_page_ids.is_empty() {
+            continue;
+        }
+
+        // For a simple extract, we can actually just use doc.extract_pages
+        // but lopdf's extract_pages can be tricky. 
+        // Let's use a cleaner approach: build a new doc with only needed objects.
+        // Actually, lopdf has a built-in delete_pages or similar? No.
+        
+        // Let's use the same logic as merge but for a single file
+        let mut new_doc = Document::with_version("1.7");
+        let mut skip_ids = std::collections::HashSet::new();
+        if let Ok(catalog_ref) = doc.trailer.get(b"Root").and_then(|o| o.as_reference()) {
+            skip_ids.insert(catalog_ref);
+            if let Ok(catalog_obj) = doc.get_object(catalog_ref) {
+                if let Ok(dict) = catalog_obj.as_dict() {
+                    if let Ok(pages_ref) = dict.get(b"Pages").and_then(|o| o.as_reference()) {
+                        skip_ids.insert(pages_ref);
+                    }
+                }
+            }
+        }
+
+        for (id, object) in doc.objects {
+            if !skip_ids.contains(&id) {
+                group_objects.insert(id, object);
+            }
+        }
+
+        new_doc.objects = group_objects;
+        new_doc.max_id = doc.max_id;
+
+        let pages_id = new_doc.add_object(Dictionary::from_iter(vec![
+            ("Type", Object::Name("Pages".into())),
+            ("Count", Object::Integer(group_page_ids.len() as i64)),
+            ("Kids", Object::Array(group_page_ids.iter().map(|&id| Object::Reference(id)).collect())),
+        ]));
+
+        for &page_id in &group_page_ids {
+            if let Ok(page_obj) = new_doc.get_object_mut(page_id) {
+                if let Ok(dict) = page_obj.as_dict_mut() {
+                    dict.set("Parent", Object::Reference(pages_id));
+                }
+            }
+        }
+
+        let catalog_id = new_doc.add_object(Dictionary::from_iter(vec![
+            ("Type", Object::Name("Catalog".into())),
+            ("Pages", Object::Reference(pages_id)),
+        ]));
+
+        new_doc.trailer.set("Root", Object::Reference(catalog_id));
+        
+        let out_name = if ranges.len() == 1 {
+            format!("{}_extracted.pdf", stem)
+        } else {
+            format!("{}_part_{}.pdf", stem, idx + 1)
+        };
+        
+        let out_path = Path::new(&output_dir).join(out_name);
+        if let Ok(mut out_file) = std::fs::File::create(&out_path) {
+            if new_doc.save_to(&mut out_file).is_ok() {
+                success_count += 1;
+            }
+        }
+    }
+
+    Ok(ProcessResult {
+        success: success_count > 0,
+        message: format!("Successfully created {} PDF files in {:?}", success_count, output_dir),
+        output_path: Some(output_dir),
+    })
+}
 

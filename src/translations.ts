@@ -4,17 +4,17 @@ export const versionInfo = {
     date: "2026-02-12",
     notes: {
         en: [
+            "Visual PDF Split: See and select specific pages to extract or split-all",
             "Fixed PDF Merge: Fully compatible with Apple Preview & strict readers",
             "Batch Image Resize: Added 100+ image processing with 4 scaling modes",
             "Automated Releases: Now providing official Windows and macOS builds",
-            "Added Homebrew & Flatpak distribution templates",
             "Full Turkish character support across all tools"
         ],
         tr: [
+            "Görsel PDF Ayırma: Sayfaları görerek seçin, ayıklayın veya tümünü bölün",
             "PDF Birleştirme Fix: Apple Önizleme ve katı okuyucularla tam uyum",
             "Toplu Görsel Boyutlandırma: 4 farklı mod ile 100+ görsel işleme",
             "Otomatik Sürümler: Resmi Windows ve macOS buildleri eklendi",
-            "Homebrew ve Flatpak dağıtım şablonları eklendi",
             "Tüm araçlarda tam Türkçe karakter desteği"
         ]
     }
@@ -70,6 +70,10 @@ export const translations = {
             merge: {
                 name: "Merge PDF",
                 desc: "Combine multiple PDF files into one"
+            },
+            split: {
+                name: "Split PDF",
+                desc: "Separate pages or extract specific parts"
             }
         },
         mergeUI: {
@@ -95,6 +99,16 @@ export const translations = {
             percentLabel: "Scale (%)",
             widthHint: "Height auto-calculated",
             heightHint: "Width auto-calculated"
+        },
+        splitUI: {
+            title: "Split PDF",
+            selectFile: "Choose PDF",
+            startSplit: "Split Now",
+            modeExtract: "Extract Selected",
+            modeSplitAll: "Split All Pages",
+            pagesFound: "Pages found",
+            noFile: "No file selected",
+            hint: "Click pages to select/deselect"
         }
     },
     tr: {
@@ -146,6 +160,10 @@ export const translations = {
             merge: {
                 name: "PDF Birleştir",
                 desc: "Birden fazla PDF'i tek belge yapın"
+            },
+            split: {
+                name: "PDF Ayır",
+                desc: "Sayfaları ayırın veya belirli kısımları dışa aktarın"
             }
         },
         mergeUI: {
@@ -171,6 +189,16 @@ export const translations = {
             percentLabel: "Oran (%)",
             widthHint: "Yükseklik otomatik hesaplanır",
             heightHint: "Genişlik otomatik hesaplanır"
+        },
+        splitUI: {
+            title: "PDF Ayır",
+            selectFile: "PDF Seç",
+            startSplit: "Ayır",
+            modeExtract: "Seçilenleri Çıkar",
+            modeSplitAll: "Tüm Sayfaları Ayır",
+            pagesFound: "Sayfa bulundu",
+            noFile: "Dosya seçilmedi",
+            hint: "Seçmek/kaldırmak için sayfalara tıklayın"
         }
     }
 };

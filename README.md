@@ -9,6 +9,7 @@
 
 - 📉 **PDF Compression:** Reduce file size without compromising quality.
 - 🔗 **PDF Merger:** Professional-grade merging with proper object handling (fully compatible with Apple Preview).
+- ✂️ **PDF Splitter (Visual):** Preview all pages and select specific ones to extract or split the whole document.
 - 🖼️ **Batch Image Resize:** Process 100s of images at once with 4 scaling modes (Exact, Percent, Width-only, Height-only).
 - 📝 **PDF to Word / Text:** Convert PDF documents to editable content.
 - 🖋️ **Signature Extraction:** Detect and isolate signature images from PDFs.
