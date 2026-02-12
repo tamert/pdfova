@@ -1,5 +1,5 @@
 export const versionInfo = {
-    current: "v0.2.0",
+    current: "v0.2.1",
     releaseName: "Engine Upgrade & Turkish Support",
     date: "2026-02-12",
     notes: {

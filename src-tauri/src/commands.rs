@@ -20,8 +20,8 @@ pub async fn merge_pdfs(files: Vec<String>, output_dir: String) -> Result<Proces
         std::fs::create_dir_all(&output_dir).map_err(|e| format!("Failed to create output dir: {}", e))?;
     }
 
-    let mut all_objects = BTreeMap::new();
-    let mut all_page_ids = Vec::new();
+    let mut all_objects: BTreeMap<(u32, u16), Object> = BTreeMap::new();
+    let mut all_page_ids: Vec<(u32, u16)> = Vec::new();
     let mut max_id: u32 = 0;
 
     for file_path in &files {
@@ -31,20 +31,29 @@ pub async fn merge_pdfs(files: Vec<String>, output_dir: String) -> Result<Proces
         doc.renumber_objects_with(max_id + 1);
         max_id = doc.max_id;
 
-        // Collect page IDs (leaf Page objects) in order
+        // Build set of IDs to skip (Catalog + root Pages node)
+        let mut skip_ids = std::collections::HashSet::new();
+        if let Ok(catalog_ref) = doc.trailer.get(b"Root").and_then(|o| o.as_reference()) {
+            skip_ids.insert(catalog_ref);
+            if let Ok(catalog_obj) = doc.get_object(catalog_ref) {
+                if let Ok(dict) = catalog_obj.as_dict() {
+                    if let Ok(pages_ref) = dict.get(b"Pages").and_then(|o| o.as_reference()) {
+                        skip_ids.insert(pages_ref);
+                    }
+                }
+            }
+        }
+
+        // Collect page IDs in order
         let mut sorted_pages: Vec<_> = doc.get_pages().into_iter().collect();
         sorted_pages.sort_by_key(|(page_num, _)| *page_num);
         for (_, obj_id) in &sorted_pages {
             all_page_ids.push(*obj_id);
         }
 
-        // Copy all objects except old Catalog and Pages tree nodes
+        // Copy objects, skipping Catalog and root Pages
         for (id, object) in doc.objects {
-            let skip = match object.type_name() {
-                Ok(t) => t == "Catalog" || t == "Pages",
-                Err(_) => false,
-            };
-            if !skip {
+            if !skip_ids.contains(&id) {
                 all_objects.insert(id, object);
             }
         }
@@ -59,13 +68,23 @@ pub async fn merge_pdfs(files: Vec<String>, output_dir: String) -> Result<Proces
     // Build new document
     let mut merged = Document::with_version("1.7");
     merged.objects = all_objects;
+    merged.max_id = max_id; // CRITICAL: Update max_id to avoid collisions during add_object
 
     // New Pages node
     let pages_id = merged.add_object(Dictionary::from_iter(vec![
         ("Type", Object::Name("Pages".into())),
         ("Count", Object::Integer(total_pages as i64)),
-        ("Kids", Object::Array(all_page_ids.into_iter().map(Object::Reference).collect())),
+        ("Kids", Object::Array(all_page_ids.iter().map(|&id| Object::Reference(id)).collect())),
     ]));
+
+    // CRITICAL: Patch every Page's /Parent to point to our new Pages node
+    for &page_id in &all_page_ids {
+        if let Ok(page_obj) = merged.get_object_mut(page_id) {
+            if let Ok(dict) = page_obj.as_dict_mut() {
+                dict.set("Parent", Object::Reference(pages_id));
+            }
+        }
+    }
 
     // New Catalog
     let catalog_id = merged.add_object(Dictionary::from_iter(vec![
@@ -74,6 +93,8 @@ pub async fn merge_pdfs(files: Vec<String>, output_dir: String) -> Result<Proces
     ]));
 
     merged.trailer.set("Root", Object::Reference(catalog_id));
+
+    // merged.compress(); // Skip compression while debugging structure issues
 
     // Save
     let timestamp = std::time::SystemTime::now()
