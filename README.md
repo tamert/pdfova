@@ -11,9 +11,21 @@
 - 🔗 **PDF Merger:** Professional-grade merging with proper object handling (fully compatible with Apple Preview).
 - ✂️ **PDF Splitter (Visual):** Preview all pages and select specific ones to extract or split the whole document.
 - 🖼️ **Batch Image Resize:** Process 100s of images at once with 4 scaling modes (Exact, Percent, Width-only, Height-only).
+- 🖼️ **Images to PDF:** Convert and combine multiple images (JPG, PNG, WebP) into a single document.
 - 📝 **PDF to Word / Text:** Convert PDF documents to editable content.
 - 🖋️ **Signature Extraction:** Detect and isolate signature images from PDFs.
 - 🔍 **Text Extraction (OCR):** Extract text content from scanned documents.
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="public/screenshot.png" width="45%" />
+  <img src="public/screenshot-2.png" width="45%" />
+</p>
+<p align="center">
+  <img src="public/screenshot-3.png" width="45%" />
+  <img src="public/screenshot-4.png" width="45%" />
+</p>
 
 ## 🚀 Key Advantages
 
@@ -74,6 +86,7 @@ To build Pdfova from source:
 - [x] Batch Image Resizing UI
 - [x] GitHub Actions automated releases
 - [x] Homebrew / Flatpak distribution scripts
+- [x] Images to PDF conversion tool
 - [ ] Real OCR via Tesseract integration
 - [ ] Drag & drop file support on main tool cards
 
