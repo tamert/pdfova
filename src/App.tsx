@@ -154,7 +154,7 @@ export default function App() {
       {/* Top Header & Navigation */}
       <header className="pt-8 px-6 bg-[#0a0a0a] z-20 shrink-0">
         <div className="flex items-center justify-between mb-8">
-          <span onClick={() => setActiveTab('home')} className="text-xl font-black tracking-tight text-white uppercase italic cursor-pointer">pdfova</span>
+          <span onClick={() => setActiveTab('home')} className="text-xl font-black tracking-tight text-white uppercase italic cursor-pointer">Pdfova</span>
           <div className="flex items-center space-x-5">
             {[
               { id: 'home', icon: HomeIcon, label: t.dashboard },

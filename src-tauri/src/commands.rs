@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use lopdf::{Document, Object, Dictionary};
 use std::collections::BTreeMap;
 
@@ -80,7 +80,7 @@ pub async fn resize_image(path: String, width: u32, height: u32, output_dir: Str
 }
 
 #[tauri::command]
-pub async fn compress_pdf(path: String, level: String, output_dir: String) -> Result<ProcessResult, String> {
+pub async fn compress_pdf(path: String, _level: String, output_dir: String) -> Result<ProcessResult, String> {
     let mut doc = Document::load(&path).map_err(|e| e.to_string())?;
     doc.compress();
     
@@ -100,28 +100,183 @@ pub async fn compress_pdf(path: String, level: String, output_dir: String) -> Re
 
 #[tauri::command]
 pub async fn extract_signature(path: String, output_dir: String) -> Result<ProcessResult, String> {
-    let mut doc = Document::load(&path).map_err(|e| format!("Load error: {}", e))?;
-    let mut extracted_count = 0;
-    
+    use flate2::read::ZlibDecoder;
+    use std::io::Read;
+
+    let doc = Document::load(&path).map_err(|e| format!("Load error: {}", e))?;
+    let mut extracted_count: u32 = 0;
+    let mut signature_count: u32 = 0;
+
     let base_output = Path::new(&output_dir).join("extracted_signatures");
     std::fs::create_dir_all(&base_output).map_err(|e| format!("Dir error: {}", e))?;
 
-    for (id, object) in doc.objects.iter() {
-        if let Ok(dict) = object.as_dict() {
-            if let Ok(subtype) = dict.get(b"Subtype") {
-                if subtype.as_name().map_err(|_| ()).ok() == Some(b"Image") {
-                    extracted_count += 1;
-                    let meta_path = base_output.join(format!("signature_{}.txt", extracted_count));
-                    std::fs::write(&meta_path, format!("Signature candidates from object {:?}", id))
-                        .map_err(|e| format!("Write error: {}", e))?;
+    for (_id, object) in doc.objects.iter() {
+        // We need a stream object (dict + raw bytes)
+        if let Ok(stream) = object.as_stream() {
+            let dict = &stream.dict;
+
+            // Check if this is an image
+            let is_image = dict.get(b"Subtype")
+                .and_then(|s| s.as_name())
+                .map(|n| n == b"Image")
+                .unwrap_or(false);
+
+            if !is_image {
+                continue;
+            }
+
+            // Read image metadata
+            let width = dict.get(b"Width")
+                .and_then(|w| w.as_i64())
+                .unwrap_or(0) as u32;
+            let height = dict.get(b"Height")
+                .and_then(|h| h.as_i64())
+                .unwrap_or(0) as u32;
+            let bpc = dict.get(b"BitsPerComponent")
+                .and_then(|b| b.as_i64())
+                .unwrap_or(8) as u32;
+
+            if width == 0 || height == 0 {
+                continue;
+            }
+
+            // Determine color space & channels
+            let channels: u32 = match dict.get(b"ColorSpace") {
+                Ok(cs) => {
+                    match cs.as_name() {
+                        Ok(name) => match name {
+                            b"DeviceRGB" => 3,
+                            b"DeviceGray" => 1,
+                            b"DeviceCMYK" => 4,
+                            _ => 3,
+                        },
+                        Err(_) => 3, // default to RGB for indexed/array color spaces
+                    }
+                }
+                Err(_) => 3,
+            };
+
+            // Determine the filter (compression type)
+            let filter: &[u8] = dict.get(b"Filter")
+                .and_then(|f| f.as_name())
+                .unwrap_or(b"");
+
+            let raw_data = &stream.content;
+            extracted_count += 1;
+
+            // Signature heuristic: likely a signature if small-to-medium and narrow
+            let is_likely_signature = width >= 30 && width <= 800
+                && height >= 15 && height <= 400
+                && (width as f64 / height as f64) > 1.2;
+
+            let prefix = if is_likely_signature {
+                signature_count += 1;
+                "signature"
+            } else {
+                "image"
+            };
+
+            match filter {
+                b"DCTDecode" => {
+                    // Raw JPEG data — save directly
+                    let out_path = base_output.join(format!("{}_{}.jpg", prefix, extracted_count));
+                    std::fs::write(&out_path, raw_data)
+                        .map_err(|e| format!("Write JPEG error: {}", e))?;
+                }
+                b"JPXDecode" => {
+                    // JPEG2000 data — save directly
+                    let out_path = base_output.join(format!("{}_{}.jp2", prefix, extracted_count));
+                    std::fs::write(&out_path, raw_data)
+                        .map_err(|e| format!("Write JP2 error: {}", e))?;
+                }
+                b"FlateDecode" | b"" => {
+                    // Decompress if FlateDecode, otherwise raw
+                    let pixel_data = if filter == b"FlateDecode" {
+                        let mut decoder = ZlibDecoder::new(&raw_data[..]);
+                        let mut decoded = Vec::new();
+                        match decoder.read_to_end(&mut decoded) {
+                            Ok(_) => decoded,
+                            Err(_) => {
+                                // If decompression fails, try raw
+                                raw_data.clone()
+                            }
+                        }
+                    } else {
+                        raw_data.clone()
+                    };
+
+                    // Try to build an image from raw pixel data
+                    let out_path = base_output.join(format!("{}_{}.png", prefix, extracted_count));
+
+                    if bpc == 8 {
+                        let expected_len = (width * height * channels) as usize;
+                        if pixel_data.len() >= expected_len {
+                            let img_result = match channels {
+                                1 => image::GrayImage::from_raw(width, height, pixel_data[..expected_len].to_vec())
+                                    .map(|img| image::DynamicImage::ImageLuma8(img)),
+                                3 => image::RgbImage::from_raw(width, height, pixel_data[..expected_len].to_vec())
+                                    .map(|img| image::DynamicImage::ImageRgb8(img)),
+                                4 => {
+                                    // CMYK → convert to RGB
+                                    let mut rgb_data = Vec::with_capacity((width * height * 3) as usize);
+                                    for chunk in pixel_data[..expected_len].chunks(4) {
+                                        if chunk.len() == 4 {
+                                            let c = chunk[0] as f32 / 255.0;
+                                            let m = chunk[1] as f32 / 255.0;
+                                            let y = chunk[2] as f32 / 255.0;
+                                            let k = chunk[3] as f32 / 255.0;
+                                            rgb_data.push(((1.0 - c) * (1.0 - k) * 255.0) as u8);
+                                            rgb_data.push(((1.0 - m) * (1.0 - k) * 255.0) as u8);
+                                            rgb_data.push(((1.0 - y) * (1.0 - k) * 255.0) as u8);
+                                        }
+                                    }
+                                    image::RgbImage::from_raw(width, height, rgb_data)
+                                        .map(|img| image::DynamicImage::ImageRgb8(img))
+                                }
+                                _ => None,
+                            };
+
+                            if let Some(img) = img_result {
+                                img.save(&out_path).map_err(|e| format!("Save PNG error: {}", e))?;
+                            } else {
+                                // Fallback: dump raw bytes
+                                std::fs::write(&out_path, &pixel_data)
+                                    .map_err(|e| format!("Write raw error: {}", e))?;
+                            }
+                        } else {
+                            // Data length mismatch — dump as raw for debugging
+                            let raw_path = base_output.join(format!("{}_{}.raw", prefix, extracted_count));
+                            std::fs::write(&raw_path, &pixel_data)
+                                .map_err(|e| format!("Write raw error: {}", e))?;
+                        }
+                    } else {
+                        // Non-8bit images — save raw data
+                        let raw_path = base_output.join(format!("{}_{}.raw", prefix, extracted_count));
+                        std::fs::write(&raw_path, &pixel_data)
+                            .map_err(|e| format!("Write raw error: {}", e))?;
+                    }
+                }
+                _ => {
+                    // Unknown filter — skip
+                    extracted_count -= 1;
+                    continue;
                 }
             }
         }
     }
 
+    let msg = if extracted_count == 0 {
+        "No embedded images found in this PDF.".to_string()
+    } else {
+        format!(
+            "Extracted {} image(s) ({} likely signature(s)). Saved to: {:?}",
+            extracted_count, signature_count, base_output
+        )
+    };
+
     Ok(ProcessResult {
-        success: true,
-        message: format!("Successfully identified {} potential signatures. Saved to: {:?}", extracted_count, base_output),
+        success: extracted_count > 0,
+        message: msg,
         output_path: Some(base_output.to_string_lossy().to_string()),
     })
 }
@@ -139,13 +294,8 @@ pub async fn run_ocr(path: String, _lang: String, output_dir: String) -> Result<
     let output = Path::new(&output_dir).join(format!("{}_ocr.txt", stem));
     
     let mut content = String::new();
-    if let Ok(doc) = lopdf::Document::load(&path) {
-        for page_id in doc.get_pages().keys() {
-            if let Ok(text) = doc.get_page_text(*page_id) {
-                content.push_str(&text);
-                content.push_str("\n\n");
-            }
-        }
+    if let Ok(text) = pdf_extract::extract_text(&path) {
+        content = text;
     }
 
     if content.trim().is_empty() {
@@ -175,23 +325,40 @@ pub async fn convert_to_word(path: String, output_dir: String) -> Result<Process
     let output = Path::new(&output_dir).join(format!("{}.docx", stem));
     
     let mut content = String::new();
-    if let Ok(doc) = lopdf::Document::load(&path) {
-        for page_id in doc.get_pages().keys() {
-            if let Ok(text) = doc.get_page_text(*page_id) {
-                content.push_str(&text);
-                content.push_str("\n\n");
-            }
-        }
+    if let Ok(text) = pdf_extract::extract_text(&path) {
+        content = text;
     }
 
-    if content.trim().is_empty() {
-        content = "PDF to Text: No text found in this PDF. It might be an image-only PDF.".to_string();
+    // Sanitize text: Remove control characters that are invalid in XML
+    // Keep tab (9), line feed (10), carriage return (13)
+    let safe_content: String = content.chars()
+        .filter(|&c| {
+            let u = c as u32;
+            u == 0x09 || u == 0x0A || u == 0x0D || (u >= 0x20 && u != 0x7F)
+        })
+        .collect();
+
+    if safe_content.trim().is_empty() {
+        // Fallback or info message
+        let msg = "PDF to content: No extractable text found. It might be an image-only PDF.";
+        let mut docx = Docx::new();
+        docx = docx.add_paragraph(Paragraph::new().add_run(Run::new().add_text(msg)));
+        let file = std::fs::File::create(&output).map_err(|e| format!("File creation error: {}", e))?;
+        docx.build().pack(file).map_err(|e| format!("DOCX build error: {:?}", e))?;
+        
+        return Ok(ProcessResult {
+            success: true,
+            message: format!("Created blank/info document (no text found): {:?}", output),
+            output_path: Some(output.to_string_lossy().to_string()),
+        });
     }
 
     // Create a real DOCX file
     let mut docx = Docx::new();
-    for line in content.lines() {
+    for line in safe_content.lines() {
         if !line.trim().is_empty() {
+            // DOCX paragraphs can't handle some huge lines or certain chars, 
+            // but filtered chars should be safe.
             docx = docx.add_paragraph(Paragraph::new().add_run(Run::new().add_text(line)));
         }
     }
@@ -205,3 +372,4 @@ pub async fn convert_to_word(path: String, output_dir: String) -> Result<Process
         output_path: Some(output.to_string_lossy().to_string()),
     })
 }
+

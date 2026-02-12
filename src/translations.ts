@@ -1,23 +1,21 @@
 export const versionInfo = {
-    current: "v0.1.1",
-    releaseName: "Initial Release",
+    current: "v0.2.0",
+    releaseName: "Engine Upgrade & Turkish Support",
     date: "2026-02-12",
     notes: {
         en: [
-            "PDF compression, merge, and text extraction",
-            "PDF to Word (.docx) conversion",
-            "Image resizing with Lanczos3 filter",
-            "Signature candidate detection from PDFs",
-            "Multi-language UI (Turkish & English)",
-            "Activity history and output directory settings"
+            "Upgraded text engine with full Turkish character support",
+            "Full signature image extraction (decoding & exporting)",
+            "Robust PDF to Word conversion with XML sanitization",
+            "Improved responsive UI grid layout",
+            "Stability and performance improvements"
         ],
         tr: [
-            "PDF sıkıştırma, birleştirme ve metin çıkarma",
-            "PDF'den Word (.docx) formatına dönüştürme",
-            "Lanczos3 filtresi ile görsel boyutlandırma",
-            "PDF belgelerinden imza adayı tespiti",
-            "Çoklu dil desteği (Türkçe & İngilizce)",
-            "İşlem geçmişi ve çıktı klasörü ayarları"
+            "Tam Türkçe karakter destekli gelişmiş metin motoru",
+            "PDF belgelerinden tam imza ve görsel ayıklama",
+            "XML temizleme ile daha stabil PDF'den Word'e dönüştürme",
+            "Geliştirilmiş duyarlı (responsive) UI düzeni",
+            "Stabilite ve performans iyileştirmeleri"
         ]
     }
 };
@@ -59,7 +57,7 @@ export const translations = {
             },
             signature: {
                 name: "Signature Extract",
-                desc: "Isolate signatures from documents instantly"
+                desc: "Extract and isolate signature images from PDFs"
             },
             resize: {
                 name: "Bulk Image Resize",
@@ -111,7 +109,7 @@ export const translations = {
             },
             signature: {
                 name: "İmza Çıkar",
-                desc: "Belgelerden imzaları anında ayıklayın"
+                desc: "PDF belgelerinden imza görsellerini çıkarın"
             },
             resize: {
                 name: "Toplu Boyutlandır",

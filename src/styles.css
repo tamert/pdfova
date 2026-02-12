@@ -28,9 +28,9 @@ body {
 /* Flux UI Components */
 .flux-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  padding: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  padding: 24px;
 }
 
 .flux-card {

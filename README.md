@@ -2,6 +2,9 @@
 
 **Pdfova** is a high-performance, cross-platform desktop tool for **PDF & Image processing**. It brings the comfort of tools like Smallpdf and iLovePDF to a native, offline application — powered by Rust and Tauri.
 
+![Pdfova Screenshot](public/screenshot.png)
+
+
 ## ✨ Features
 
 - 📉 **PDF Compression:** Reduce file size without compromising quality.
