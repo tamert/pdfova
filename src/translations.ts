@@ -1,19 +1,23 @@
 export const versionInfo = {
-    current: "v0.3.1",
-    releaseName: "Logic Patch",
+    current: "v0.1.1",
+    releaseName: "Initial Release",
     date: "2026-02-12",
     notes: {
         en: [
-            "Fixed 'Invalid Format' error by outputting .txt files",
-            "Implemented real text extraction using lopdf",
-            "Updated tool descriptions to reflect current capabilities",
-            "Added Help page with version tracking"
+            "PDF compression, merge, and text extraction",
+            "PDF to Word (.docx) conversion",
+            "Image resizing with Lanczos3 filter",
+            "Signature candidate detection from PDFs",
+            "Multi-language UI (Turkish & English)",
+            "Activity history and output directory settings"
         ],
         tr: [
-            "'Dosya biçimi geçersiz' hatası giderildi (.txt formatına geçildi)",
-            "lopdf kullanılarak gerçek metin çıkarma özelliği eklendi",
-            "Araç açıklamaları mevcut yeteneklere göre güncellendi",
-            "Sürüm takipli Yardım sayfası eklendi"
+            "PDF sıkıştırma, birleştirme ve metin çıkarma",
+            "PDF'den Word (.docx) formatına dönüştürme",
+            "Lanczos3 filtresi ile görsel boyutlandırma",
+            "PDF belgelerinden imza adayı tespiti",
+            "Çoklu dil desteği (Türkçe & İngilizce)",
+            "İşlem geçmişi ve çıktı klasörü ayarları"
         ]
     }
 };
