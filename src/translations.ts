@@ -4,9 +4,48 @@ import { bs } from "./translations/locales/bs";
 import { es } from "./translations/locales/items/es";
 import { fr } from "./translations/locales/items/fr";
 import { de } from "./translations/locales/items/de";
-import * as majorExtra from "./translations/locales/items/major_extra";
-import * as asian from "./translations/locales/items/asian";
-import { others } from "./translations/locales/items/others";
+import { ar } from "./translations/locales/items/ar";
+import { ko } from "./translations/locales/items/ko";
+import { ja } from "./translations/locales/items/ja";
+import { zh } from "./translations/locales/items/zh";
+import { az } from "./translations/locales/items/az";
+import { uz } from "./translations/locales/items/uz";
+import { ru } from "./translations/locales/items/ru";
+import { pt } from "./translations/locales/items/pt";
+import { it } from "./translations/locales/items/it";
+import { nl } from "./translations/locales/items/nl";
+import { pl } from "./translations/locales/items/pl";
+import { hi } from "./translations/locales/items/hi";
+import { id } from "./translations/locales/items/id";
+import { vi } from "./translations/locales/items/vi";
+import { th } from "./translations/locales/items/th";
+import { uk } from "./translations/locales/items/uk";
+import { sv } from "./translations/locales/items/sv";
+import { fi } from "./translations/locales/items/fi";
+import { da } from "./translations/locales/items/da";
+import { no } from "./translations/locales/items/no";
+import { el } from "./translations/locales/items/el";
+import { cs } from "./translations/locales/items/cs";
+import { hu } from "./translations/locales/items/hu";
+import { ro } from "./translations/locales/items/ro";
+import { bg } from "./translations/locales/items/bg";
+import { sk } from "./translations/locales/items/sk";
+import { hr } from "./translations/locales/items/hr";
+import { sr } from "./translations/locales/items/sr";
+import { sl } from "./translations/locales/items/sl";
+import { et } from "./translations/locales/items/et";
+import { lv } from "./translations/locales/items/lv";
+import { lt } from "./translations/locales/items/lt";
+import { ms } from "./translations/locales/items/ms";
+import { fil } from "./translations/locales/items/fil";
+import { fa } from "./translations/locales/items/fa";
+import { ka } from "./translations/locales/items/ka";
+import { hy } from "./translations/locales/items/hy";
+import { mn } from "./translations/locales/items/mn";
+import { kk } from "./translations/locales/items/kk";
+import { bn } from "./translations/locales/items/bn";
+import { pa } from "./translations/locales/items/pa";
+import { sq } from "./translations/locales/items/sq";
 
 export const versionInfo = {
     current: "v0.3.0",
@@ -37,9 +76,48 @@ export const translations = {
     es,
     fr,
     de,
-    ...majorExtra,
-    ...asian,
-    ...others
+    ar,
+    ko,
+    ja,
+    zh,
+    az,
+    uz,
+    ru,
+    pt,
+    it,
+    nl,
+    pl,
+    hi,
+    id,
+    vi,
+    th,
+    uk,
+    sv,
+    fi,
+    da,
+    no,
+    el,
+    cs,
+    hu,
+    ro,
+    bg,
+    sk,
+    hr,
+    sr,
+    sl,
+    et,
+    lv,
+    lt,
+    ms,
+    fil,
+    fa,
+    ka,
+    hy,
+    mn,
+    kk,
+    bn,
+    pa,
+    sq
 } as const;
 
 export type Language = keyof typeof translations;
@@ -51,15 +129,15 @@ export const languageNames: Record<Language, string> = {
     es: "Español",
     fr: "Français",
     de: "Deutsch",
+    ar: "العربية",
+    ko: "한국어",
+    ja: "日本語",
+    zh: "简体中文",
     it: "Italiano",
     pt: "Português",
     nl: "Nederlands",
     ru: "Русский",
-    ja: "日本語",
-    ko: "한국어",
-    zh: "简体中文",
     hi: "हिन्दी",
-    ar: "العربية",
     id: "Bahasa Indonesia",
     vi: "Tiếng Việt",
     th: "ไทย",
@@ -85,7 +163,7 @@ export const languageNames: Record<Language, string> = {
     fil: "Filipino",
     fa: "فارسی",
     ka: "ქართული",
-    hy: "Հայերեն",
+    hy: "Հايերեն",
     mn: "Монгол",
     kk: "Қазақ тілі",
     bn: "বাংলা",

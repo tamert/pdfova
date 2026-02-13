@@ -103,4 +103,4 @@ To build Pdfova from source:
 Licensed under the [GPL-3.0 License](LICENSE).
 
 ---
-Created by [Tamer](https://github.com/tamert) for the Open Source Community.
+Created by [Tamer](https://github.com/tamert) with ❤️ for the Open Source Community.
