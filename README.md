@@ -1,40 +1,48 @@
-# Pdfova 🚀
+<p align="center">
+  <img src="public/iconkit/Icon-128.png" width="128" />
+</p>
+
+# Pdfova
 
 **Pdfova** is a high-performance, cross-platform desktop tool for **PDF & Image processing**. It brings the comfort of tools like Smallpdf and iLovePDF to a native, offline application — powered by Rust and Tauri.
 
-![Pdfova Screenshot](public/screenshot.png)
+![Pdfova Screenshot](public/screenshots/screenshot.png)
 
 
-## ✨ Features
+## Features
 
-- 📉 **PDF Compression:** Reduce file size without compromising quality.
-- 🔗 **PDF Merger:** Professional-grade merging with proper object handling (fully compatible with Apple Preview).
-- ✂️ **PDF Splitter (Visual):** Preview all pages and select specific ones to extract or split the whole document.
-- 🖼️ **Batch Image Resize:** Process 100s of images at once with 4 scaling modes (Exact, Percent, Width-only, Height-only).
-- 🖼️ **Images to PDF:** Convert and combine multiple images (JPG, PNG, WebP) into a single document.
-- 📝 **PDF to Word / Text:** Convert PDF documents to editable content.
-- 🖋️ **Signature Extraction:** Detect and isolate signature images from PDFs.
-- 🔍 **Text Extraction (OCR):** Extract text content from scanned documents.
+- **PDF Compression:** Reduce file size without compromising quality.
+- **PDF Merger:** Professional-grade merging with proper object handling (fully compatible with Apple Preview).
+- **PDF Splitter (Visual):** Preview all pages and select specific ones to extract or split the whole document.
+- **Batch Image Resize:** Process 100s of images at once with 4 scaling modes (Exact, Percent, Width-only, Height-only).
+- **Images to PDF:** Convert and combine multiple images (JPG, PNG, WebP) into a single document.
+- **PDF to Word / Text:** Convert PDF documents to editable content.
+- **Signature Extraction:** Detect and isolate signature images from PDFs.
+- **Text Extraction (OCR):** Extract text content from scanned documents.
 
-## 📸 Screenshots
+## Screenshots
 
 <p align="center">
-  <img src="public/screenshot.png" width="45%" />
-  <img src="public/screenshot-2.png" width="45%" />
+  <img src="public/screenshots/screenshot.png" width="45%" />
+  <img src="public/screenshots/screenshot-20.40.png" width="45%" />
 </p>
 <p align="center">
-  <img src="public/screenshot-3.png" width="45%" />
-  <img src="public/screenshot-4.png" width="45%" />
+  <img src="public/screenshots/screenshot-19.11.png" width="45%" />
+  <img src="public/screenshots/screenshot-19.33.png" width="45%" />
+</p>
+<p align="center">
+  <img src="public/screenshots/screenshot-21.14.png" width="45%" />
+  <img src="public/screenshots/screenshot-21.46.png" width="45%" />
 </p>
 
-## 🚀 Key Advantages
+## Key Advantages
 
 - **Cross-Platform:** Native builds for macOS, Windows, and Linux.
 - **Privacy First:** All processing happens locally on your machine. No cloud, no uploads.
 - **Fast:** Powered by Rust for lightning-fast processing.
 - **Modern UI:** Minimalist dark mode with smooth React-powered animations.
 
-## 📦 Installation
+## Installation
 
 ### macOS (Intel & Apple Silicon)
 1. Download the `.dmg` from [Releases](https://github.com/tamert/pdfova/releases).
@@ -47,7 +55,7 @@
 ### Windows 
 Download the `.msi` or `.exe` from the [Releases](https://github.com/tamert/pdfova/releases).
 
-### 🐧 Linux (Pardus, Ubuntu, Debian)
+### Linux (Pardus, Ubuntu, Debian)
 - **Debian/Pardus (.deb):** 
   ```bash
   sudo apt install ./pdfova_0.3.0_amd64.deb
@@ -55,13 +63,13 @@ Download the `.msi` or `.exe` from the [Releases](https://github.com/tamert/pdfo
 - **Portable (.AppImage):** Download the `.AppImage` from Releases, make it executable, and run.
 - **Flatpak:** Manifesto and build guide available in `dist-scripts/flatpak/`.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Backend:** [Rust](https://www.rust-lang.org/) (lopdf, image-rs).
 - **Frontend:** [React](https://reactjs.org/) + [Vite](https://vitejs.dev/) + [Tailwind CSS](https://tailwindcss.com/).
 - **Bridge:** [Tauri v2](https://tauri.app/).
 
-## 🛠️ Development
+## Development
 
 To build Pdfova from source:
 
@@ -79,7 +87,7 @@ To build Pdfova from source:
    npm run tauri build
    ```
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [x] Full Turkish character support
 - [x] Robust PDF Merger (Preview compatibility)
@@ -90,9 +98,9 @@ To build Pdfova from source:
 - [ ] Real OCR via Tesseract integration
 - [ ] Drag & drop file support on main tool cards
 
-## 📄 License
+## License
 
 Licensed under the [GPL-3.0 License](LICENSE).
 
 ---
-Created by [Tamer](https://github.com/tamert) with ❤️ for the Open Source Community.
+Created by [Tamer](https://github.com/tamert) for the Open Source Community.
