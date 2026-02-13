@@ -25,7 +25,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import * as pdfjs from "pdfjs-dist";
-import { translations, versionInfo, Language } from "./translations";
+import { translations, versionInfo, Language, languageNames } from "./translations";
 import "./styles.css";
 
 // Import worker via Vite URL
@@ -43,7 +43,7 @@ export default function App() {
   const [category, setCategory] = useState("all");
   const [lang, setLang] = useState<Language>(() => {
     const saved = localStorage.getItem("pdfova-lang");
-    return (saved as Language) || "tr";
+    return (saved as Language) || "en";
   });
   const [outputDir, setOutputDir] = useState<string>(() => {
     return localStorage.getItem("pdfova-output-dir") || "";
@@ -923,10 +923,14 @@ export default function App() {
 
                   <div className="bg-white/[0.02] rounded-2xl p-6 border border-white/5">
                     <h3 className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">{lang === 'tr' ? 'DİL SEÇİMİ' : 'UI LANGUAGE'}</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {['tr', 'en'].map(l => (
-                        <button key={l} onClick={() => setLang(l as Language)} className={`py-4 rounded-xl text-[11px] font-bold uppercase tracking-widest border transition-all ${lang === l ? "bg-white text-black border-white" : "bg-transparent border-white/10 text-white/40 hover:border-white/20"}`}>
-                          {l === 'tr' ? 'Türkçe' : 'English'}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                      {(Object.keys(languageNames) as Language[]).map(l => (
+                        <button
+                          key={l}
+                          onClick={() => setLang(l)}
+                          className={`py-3 px-2 rounded-xl text-[10px] font-bold uppercase tracking-tight border transition-all ${lang === l ? "bg-white text-black border-white" : "bg-transparent border-white/5 text-white/30 hover:border-white/10"}`}
+                        >
+                          {languageNames[l]}
                         </button>
                       ))}
                     </div>
@@ -958,7 +962,7 @@ export default function App() {
                   <div className="bg-white/[0.02] rounded-2xl p-6 border border-white/5">
                     <h3 className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-6">{t.releaseNotes} ({versionInfo.current})</h3>
                     <div className="space-y-4">
-                      {(versionInfo.notes as any)[lang].map((note: string, idx: number) => (
+                      {((versionInfo.notes as any)[lang] || versionInfo.notes.en).map((note: string, idx: number) => (
                         <div key={idx} className="flex items-start space-x-3">
                           <div className="w-1 h-1 bg-[#e53935] rounded-full mt-1.5 flex-shrink-0" />
                           <p className="text-[11px] text-white/70 font-medium leading-relaxed">{note}</p>
